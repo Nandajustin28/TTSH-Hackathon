@@ -198,7 +198,7 @@ def start_conversation(request):
             decision_messages = {
                 'accept': 'PHYSICIAN DECISION: ACCEPT\n\nForm has been reviewed and approved for processing.',
                 'reject': 'PHYSICIAN DECISION: REJECT\n\nForm requires attention or has issues that need to be addressed.',
-                'review': 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review or clarification.'
+                'review': 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review, keep patient status pending.'
             }
             final_message = case_header + decision_messages.get(physician_decision, '')
             

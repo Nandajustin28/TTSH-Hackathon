@@ -461,13 +461,13 @@
                 let autoMessage = '';
                 switch(decision) {
                     case 'accept':
-                        autoMessage = 'PHYSICIAN DECISION: ACCEPT\\n\\nForm has been reviewed and approved for processing.';
+                        autoMessage = 'PHYSICIAN DECISION: ACCEPT\\n\\nForm has been reviewed, accept patient.';
                         break;
                     case 'reject':
-                        autoMessage = 'PHYSICIAN DECISION: REJECT\\n\\nForm requires attention or has issues that need to be addressed.';
+                        autoMessage = 'PHYSICIAN DECISION: REJECT\\n\\nForm has been reviewed, reject patient.';
                         break;
                     case 'review':
-                        autoMessage = 'PHYSICIAN DECISION: NEEDS REVIEW\\n\\nForm requires additional review or clarification.';
+                        autoMessage = 'PHYSICIAN DECISION: NEEDS REVIEW\\n\\nForm requires additional review, keep patient status pending.';
                         break;
                 }
                 messageTextarea.value = autoMessage;
@@ -564,13 +564,13 @@ window.selectDecision = function(decision, buttonElement) {
         let autoMessage = '';
         switch(decision) {
             case 'accept':
-                autoMessage = 'PHYSICIAN DECISION: ACCEPT\n\nForm has been reviewed and approved for processing.';
+                autoMessage = 'PHYSICIAN DECISION: ACCEPT\n\nForm has been reviewed, accept patient.';
                 break;
             case 'reject':
-                autoMessage = 'PHYSICIAN DECISION: REJECT\n\nForm requires attention or has issues that need to be addressed.';
+                autoMessage = 'PHYSICIAN DECISION: REJECT\n\nForm has been reviewed, reject patient.';
                 break;
             case 'review':
-                autoMessage = 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review or clarification.';
+                autoMessage = 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review, keep patient status pending.';
                 break;
         }
         messageTextarea.value = autoMessage;

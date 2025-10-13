@@ -19,10 +19,10 @@ def dashboard_home(request):
     # Total forms count excludes cancelled forms
     total_forms = PatientForm.objects.exclude(status='cancelled').count()
     
-    # Get message notifications for administrators
+    # Get message notifications for administrators and doctors
     unread_messages_count = 0
     latest_conversation = None
-    if hasattr(request.user, 'profile') and request.user.profile.role == 'administrator':
+    if hasattr(request.user, 'profile') and request.user.profile.role in ['administrator', 'screening_physician']:
         try:
             from messaging.models import Conversation, Message, MessageReadStatus
             # Get conversations where user is participant
@@ -76,6 +76,9 @@ def dashboard_home(request):
     else:
         acceptance_rate = "0%"
     
+    # Check if user should see notifications
+    can_see_notifications = request.user.profile.role in ['administrator', 'screening_physician']
+    
     context = {
         'user_name': request.user.get_full_name() or request.user.username,
         'total_forms': total_forms,
@@ -91,6 +94,7 @@ def dashboard_home(request):
         'recent_forms': recent_forms,
         'unread_messages_count': unread_messages_count,
         'latest_conversation': latest_conversation,
+        'can_see_notifications': can_see_notifications,
     }
     return render(request, 'dashboard/home.html', context)
 

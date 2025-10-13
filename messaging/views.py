@@ -196,9 +196,9 @@ def start_conversation(request):
                 case_header += f"📅 Submitted: {patient_form.uploaded_at.strftime('%B %d, %Y at %I:%M %p')}\n\n"
             
             decision_messages = {
-                'accept': 'PHYSICIAN DECISION: ACCEPT\n\nForm has been reviewed and approved for processing.',
-                'reject': 'PHYSICIAN DECISION: REJECT\n\nForm requires attention or has issues that need to be addressed.',
-                'review': 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review or clarification.'
+                'accept': 'PHYSICIAN DECISION: ACCEPT\n\nForm has been reviewed, accept patient.',
+                'reject': 'PHYSICIAN DECISION: REJECT\n\nForm has been reviewed, reject patient.',
+                'review': 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review, keep patient status pending.'
             }
             final_message = case_header + decision_messages.get(physician_decision, '')
             

@@ -180,7 +180,7 @@
                 <h1>Welcome back, {{ user_name }}</h1>
                 <p>Upload and manage patient referral forms</p>
             </div>
-            {% if user.profile.role == 'administrator' %}
+            {% if can_see_notifications %}
                 <div class="header-actions">
                     <div class="message-notification">
                         {% if unread_messages_count > 0 and latest_conversation %}
@@ -207,7 +207,7 @@
 
     <!-- Stats Cards -->
     <div class="stats-grid">
-        {% if user.profile.role == 'administrator' and unread_messages_count > 0 %}
+        {% if can_see_notifications and unread_messages_count > 0 %}
         <div class="stat-card message-alert-card">
             <div class="stat-icon message-icon">
                 <i class="fas fa-envelope"></i>

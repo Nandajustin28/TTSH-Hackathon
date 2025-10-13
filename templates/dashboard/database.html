@@ -45,11 +45,12 @@
                 <div class="filter-dropdown">
                     <i class="fas fa-filter filter-icon"></i>
                     <select name="status" class="status-filter" onchange="this.form.submit()">
-                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Active Forms</option>
                         <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
                         <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
                         <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
                         <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
                     </select>
                 </div>
                 {% endif %}
@@ -73,6 +74,16 @@
                 <span>
                     {% if user.profile.role == 'screening_physician' %}
                         Pending Forms ({{ total_forms }})
+                    {% elif status_filter == 'cancelled' %}
+                        Cancelled Forms ({{ total_forms }})
+                    {% elif status_filter == 'all' %}
+                        Active Forms ({{ total_forms }})
+                    {% elif status_filter == 'pending' %}
+                        Pending Forms ({{ total_forms }})
+                    {% elif status_filter == 'approved' %}
+                        Approved Forms ({{ total_forms }})
+                    {% elif status_filter == 'rejected' %}
+                        Rejected Forms ({{ total_forms }})
                     {% else %}
                         All Forms ({{ total_forms }})
                     {% endif %}
@@ -84,8 +95,8 @@
                     <button class="inline-category-btn {% if not status_filter or status_filter == 'all' %}active{% endif %}" 
                             onclick="filterByCategory('all')" 
                             data-category="all"
-                            title="Show all forms">
-                        All ({{ total_forms }})
+                            title="Show active forms (excludes cancelled)">
+                        Active ({{ total_forms }})
                     </button>
                     <button class="inline-category-btn pending-btn {% if status_filter == 'pending' %}active{% endif %}" 
                             onclick="filterByCategory('pending')" 
@@ -104,6 +115,12 @@
                             data-category="rejected"
                             title="Show rejected forms">
                         Rejected ({{ rejected_count }})
+                    </button>
+                    <button class="inline-category-btn cancelled-btn {% if status_filter == 'cancelled' %}active{% endif %}" 
+                            onclick="filterByCategory('cancelled')" 
+                            data-category="cancelled"
+                            title="Show cancelled forms">
+                        Cancelled ({{ cancelled_count }})
                     </button>
                     
                     <!-- Time Sort Dropdown -->
@@ -179,9 +196,12 @@
                                     </div>
                                 {% else %}
                                     <!-- Physicians cannot change status directly. Display read-only badge and prompt to message admin. -->
-                                    <span class="status-badge {% if form.status == 'approved' %}status-approved{% elif form.status == 'rejected' %}status-rejected{% elif form.status == 'processing' %}status-processing{% else %}status-pending{% endif %}"
-                                          title="Status changes are managed by Admin. Use the message action to request updates.">
+                                    <span class="status-badge {% if form.status == 'approved' %}status-approved{% elif form.status == 'rejected' %}status-rejected{% elif form.status == 'cancelled' %}status-cancelled{% elif form.status == 'processing' %}status-processing{% else %}status-pending{% endif %}"
+                                          title="{% if form.status == 'cancelled' %}This form has been cancelled and cannot be modified{% else %}Status changes are managed by Admin. Use the message action to request updates.{% endif %}">
                                         {{ form.status_display }}
+                                        {% if form.status == 'cancelled' %}
+                                            <i class="fas fa-ban" style="margin-left: 5px; color: #e3342f;"></i>
+                                        {% endif %}
                                     </span>
                                 {% endif %}
                             </td>
@@ -226,6 +246,15 @@
                                                class="action-btn message-btn" title="Start conversation about this form">
                                                 <i class="fas fa-comment"></i>
                                             </a>
+                                        {% endif %}
+                                        {% if form.can_be_cancelled and form.status != 'cancelled' %}
+                                        <button class="action-btn cancel-btn" title="Cancel Form" onclick="cancelPatientForm({{ form.id }}, '{{ form.patient_name|default:form.extracted_patient_name|default:'Unknown Patient' }}')">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                        {% elif form.can_undo_cancellation %}
+                                        <button class="action-btn undo-btn" title="Undo Cancellation" onclick="undoCancellation({{ form.id }}, '{{ form.patient_name|default:form.extracted_patient_name|default:'Unknown Patient' }}')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
                                         {% endif %}
                                         <button class="action-btn delete-btn" title="Delete Form" onclick="deletePatientForm({{ form.id }}, '{{ form.patient_name|default:form.extracted_patient_name|default:'Unknown Patient' }}')">
                                             <i class="fas fa-trash"></i>
@@ -653,6 +682,18 @@
     border-color: var(--error-color);
 }
 
+.inline-category-btn.cancelled-btn:hover:not(.active) {
+    background: rgba(227, 52, 47, 0.1);
+    color: #e3342f;
+    border-color: #e3342f;
+}
+
+.inline-category-btn.cancelled-btn.active {
+    background: #e3342f;
+    border-color: #e3342f;
+    color: white;
+}
+
 /* Time Sort Dropdown */
 .time-sort-container {
     position: relative;
@@ -790,6 +831,12 @@
 .status-pending {
     background: var(--warning-bg);
     color: var(--warning-text);
+}
+
+.status-cancelled {
+    background: rgba(227, 52, 47, 0.1);
+    color: #e3342f;
+    border: 1px solid rgba(227, 52, 47, 0.3);
 }
 
 /* Status Dropdown Styles */
@@ -1035,6 +1082,46 @@
 }
 
 .delete-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cancel-btn {
+    background: rgba(227, 52, 47, 0.1);
+    color: #e3342f;
+    border: 1px solid rgba(227, 52, 47, 0.3);
+    transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+    background: #e3342f;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(227, 52, 47, 0.3);
+}
+
+.cancel-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.undo-btn {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-color);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    transition: all 0.2s ease;
+}
+
+.undo-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.undo-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
@@ -1681,6 +1768,163 @@ function deletePatientForm(formId, patientName) {
         
         console.error('Error:', error);
         showNotification('An error occurred while deleting the form.', 'error');
+    });
+}
+
+// Function to cancel patient form
+function cancelPatientForm(formId, patientName) {
+    // Show confirmation dialog
+    const confirmMessage = `Are you sure you want to cancel the form for "${patientName}"?\n\nThis will mark the form as cancelled and make it read-only. This action cannot be undone.`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target.closest('.cancel-btn');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Make AJAX request to cancel the form
+    fetch('{% url "dashboard:update_form_status" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            form_id: formId,
+            status: 'cancelled'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showNotification('Form has been cancelled successfully', 'success');
+            
+            // Update the status in the row
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('.status');
+            const statusBadge = statusCell.querySelector('.status-badge, .status-dropdown-container');
+            
+            if (statusBadge) {
+                statusBadge.innerHTML = `
+                    <span class="status-badge status-cancelled" title="This form has been cancelled and cannot be modified">
+                        Cancelled
+                        <i class="fas fa-ban" style="margin-left: 5px; color: #e3342f;"></i>
+                    </span>
+                `;
+            }
+            
+            // Replace cancel button with undo button
+            const actionsCell = button.closest('.actions').querySelector('.action-buttons');
+            button.outerHTML = `
+                <button class="action-btn undo-btn" title="Undo Cancellation" onclick="undoCancellation(${formId}, '${patientName}')">
+                    <i class="fas fa-undo"></i>
+                </button>
+            `;
+            
+        } else {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            
+            // Show error message
+            showNotification(data.error || 'Failed to cancel form', 'error');
+        }
+    })
+    .catch(error => {
+        // Restore button state
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        
+        console.error('Error:', error);
+        showNotification('An error occurred while cancelling the form.', 'error');
+    });
+}
+
+// Function to undo cancellation of patient form
+function undoCancellation(formId, patientName) {
+    // Show confirmation dialog
+    const confirmMessage = `Are you sure you want to restore the form for "${patientName}"?\n\nThis will restore the form to its previous status before cancellation.`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target.closest('.undo-btn');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Make AJAX request to undo cancellation
+    fetch('{% url "dashboard:undo_cancellation" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            form_id: formId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showNotification('Form cancellation has been undone successfully', 'success');
+            
+            // Update the status in the row
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('.status');
+            const statusBadge = statusCell.querySelector('.status-badge, .status-dropdown-container');
+            
+            if (statusBadge) {
+                const newStatus = data.new_status;
+                const statusClass = newStatus === 'approved' ? 'status-approved' : 'status-rejected';
+                statusBadge.innerHTML = `
+                    <span class="status-badge ${statusClass}" title="Status changes are managed by Admin. Use the message action to request updates.">
+                        ${data.status_display}
+                    </span>
+                `;
+            }
+            
+            // Replace undo button with cancel button
+            const actionsCell = row.querySelector('.actions .action-buttons');
+            const undoBtn = actionsCell.querySelector('.undo-btn');
+            if (undoBtn) {
+                undoBtn.outerHTML = `
+                    <button class="action-btn cancel-btn" title="Cancel Form" onclick="cancelPatientForm(${formId}, '${patientName}')">
+                        <i class="fas fa-ban"></i>
+                    </button>
+                `;
+            }
+            
+        } else {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            
+            // Show error message
+            showNotification(data.error || 'Failed to undo cancellation', 'error');
+        }
+    })
+    .catch(error => {
+        // Restore button state
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        
+        console.error('Error:', error);
+        showNotification('An error occurred while undoing the cancellation.', 'error');
     });
 }
 

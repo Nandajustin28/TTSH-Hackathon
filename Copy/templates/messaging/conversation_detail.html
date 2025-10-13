@@ -1,0 +1,779 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Conversation - MediFlow AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/messaging.css' %}">
+<style>
+    /* Conversation-specific styling using dashboard patterns */
+    .back-button {
+        color: var(--primary-color);
+        text-decoration: none;
+        margin-right: 12px;
+    }
+    
+    .back-button:hover {
+        color: var(--primary-dark);
+        text-decoration: none;
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .delete-conversation-btn {
+        background: var(--error-bg);
+        color: var(--error-color);
+        border: 1px solid var(--error-color);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .delete-conversation-btn:hover {
+        background: var(--error-color);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+    
+        /* Enhanced message styling with better dark mode support */
+    .message {
+        margin-bottom: 16px;
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .message:hover {
+        background: rgba(59, 130, 246, 0.02);
+        border-radius: 12px;
+        padding: 4px;
+        margin: -4px;
+        margin-bottom: 12px;
+    }
+    
+    .message.sent {
+        justify-content: flex-end;
+        flex-direction: row-reverse;
+    }
+    
+    .message-bubble {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-primary);
+        box-shadow: var(--shadow-light);
+        color: var(--text-primary);
+        position: relative;
+    }
+    
+    .message.received .message-bubble {
+        border-radius: 18px 18px 18px 4px;
+    }
+    
+    .message.sent .message-bubble {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        border: none;
+        border-radius: 18px 18px 4px 18px;
+        box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+        .message-time {
+        font-size: 11px;
+        color: var(--text-tertiary);
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .message-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    
+    .message:hover .message-actions {
+        opacity: 1;
+    }
+    
+    .message-delete-btn {
+        background: none;
+        border: none;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        font-size: 10px;
+    }
+    
+    .message-delete-btn:hover {
+        background: var(--error-bg);
+        color: var(--error-color);
+        transform: scale(1.1);
+    }
+    
+    .message.sent .message-delete-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .read-status {
+        font-size: 10px;
+    }
+    
+    .time-text {
+        flex: 1;
+    }
+    
+    /* Physician Decision Styling */
+    .message.physician-decision .message-bubble {
+        border-left: 4px solid var(--primary-color);
+        background: linear-gradient(135deg, var(--card-bg), rgba(59, 130, 246, 0.05));
+    }
+    
+    .decision-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-primary);
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .decision-badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: auto;
+    }
+    
+    .decision-badge.accept {
+        background: #10b981;
+        color: white;
+    }
+    
+    .decision-badge.reject {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .decision-badge.review {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .message.physician-decision.sent .message-bubble {
+        border-left: none;
+        border-right: 4px solid var(--primary-color);
+    }
+    
+    .message.received .message-time {
+        text-align: left;
+    }
+    
+    /* Patient Case Header Styling - Enhanced for Admin Visibility */
+    .patient-case-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+    }
+    
+    .patient-case-header::before {
+        content: '🏥';
+        font-size: 18px;
+        margin-right: 8px;
+    }
+    
+    .case-submission-date {
+        background: rgba(102, 126, 234, 0.2);
+        color: var(--primary-color);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        border-left: 4px solid var(--primary-color);
+        border-right: 1px solid rgba(102, 126, 234, 0.3);
+        border-top: 1px solid rgba(102, 126, 234, 0.3);
+        border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .case-submission-date::before {
+        content: '📅';
+        font-size: 14px;
+    }
+    
+    /* Status Change Indicator for Administrators */
+    .status-change-indicator {
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin: 8px 0;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-left: 4px solid;
+    }
+    
+    .status-change-indicator.accept {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        border-left-color: #10b981;
+    }
+    
+    .status-change-indicator.reject {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        border-left-color: #ef4444;
+    }
+    
+    .status-change-indicator.review {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+        border-left-color: #f59e0b;
+    }
+    
+    /* Patient Case Details Styling */
+    .patient-case-details {
+        background: rgba(102, 126, 234, 0.1);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .case-details-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .case-details-content {
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-secondary);
+    }
+    
+    .case-details-content div {
+        margin-bottom: 4px;
+    }
+    
+    .case-details-content strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    
+    /* Message form styling */
+    .message-form {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 16px;
+        margin-top: 16px;
+    }
+    
+    .message-form textarea {
+        background: var(--input-bg);
+        border: 2px solid var(--border-primary);
+        border-radius: 12px;
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .message-form textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .message-form textarea::placeholder {
+        color: var(--text-tertiary);
+    }
+    
+    .new-message-btn {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 20px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        font-size: 14px;
+        min-height: 44px;
+    }
+    
+    .new-message-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .messages-container {
+        padding: 20px 0;
+        max-height: 50vh;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+    }
+    
+    .messages-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .messages-container::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+        border-radius: 3px;
+    }
+    
+    .messages-container::-webkit-scrollbar-thumb {
+        background: var(--border-primary);
+        border-radius: 3px;
+    }
+    
+    .messages-container::-webkit-scrollbar-thumb:hover {
+        background: var(--border-secondary);
+    }
+    
+    /* No messages state */
+    .no-forms {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        text-align: center;
+        color: var(--text-secondary);
+        height: 100%;
+    }
+    
+    .no-forms i {
+        font-size: 48px;
+        color: var(--text-tertiary);
+        margin-bottom: 16px;
+    }
+    
+    .no-forms p {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+    }
+    
+    .no-forms small {
+        color: var(--text-tertiary);
+        font-size: 14px;
+    }
+    
+    /* All other styling inherited from dashboard.css */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="header-text">
+                <h1>
+                    <a href="{% url 'messaging:inbox' %}" class="back-button">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    {% if other_participant %}
+                        {{ other_participant.get_full_name|default:other_participant.username }}
+                    {% else %}
+                        {{ conversation.title|default:"Group Conversation" }}
+                    {% endif %}
+                </h1>
+                <p>Message conversation</p>
+            </div>
+            <div class="header-actions">
+                <button class="delete-conversation-btn" title="Delete entire conversation" onclick="deleteConversationFromDetail({{ conversation.id }}, '{% if other_participant %}{{ other_participant.get_full_name|default:other_participant.username }}{% else %}{{ conversation.title|default:'Group Conversation' }}{% endif %}')">
+                    <i class="fas fa-trash"></i>
+                    Delete Conversation
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Messages in dashboard card -->
+    <div class="dashboard-card" style="height: 60vh; display: flex; flex-direction: column;">
+        <h2>Messages</h2>
+        <div class="messages-container" id="messages-container" style="flex: 1; overflow-y: auto; padding: 20px 0;">
+            {% if messages %}
+                <!-- Pagination for older messages -->
+                {% if messages.has_other_pages %}
+                    <div class="pagination">
+                        {% if messages.has_previous %}
+                            <a href="?page={{ messages.previous_page_number }}">&laquo; Older</a>
+                        {% endif %}
+                        
+                        {% if messages.has_next %}
+                            <a href="?page={{ messages.next_page_number }}">Newer &raquo;</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            
+            {% for message in messages %}
+                <div class="message {% if message.sender == user %}sent{% else %}received{% endif %} {% if 'PHYSICIAN DECISION:' in message.content %}physician-decision{% endif %}">
+                    <div class="message-bubble">
+                        {% if 'PHYSICIAN DECISION:' in message.content %}
+                            <div class="decision-header">
+                                <i class="fas fa-gavel"></i>
+                                <span>Physician Decision</span>
+                                {% if 'ACCEPT' in message.content %}
+                                    <span class="decision-badge accept">ACCEPTED</span>
+                                {% elif 'REJECT' in message.content %}
+                                    <span class="decision-badge reject">REJECTED</span>
+                                {% elif 'NEEDS REVIEW' in message.content %}
+                                    <span class="decision-badge review">NEEDS REVIEW</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="message-content" data-message-id="{{ message.id }}">{{ message.content|linebreaks }}</div>
+                        <div class="message-time">
+                            {{ message.created_at|date:"M j, H:i" }}
+                            {% if message.sender == user %}
+                                <i class="fas fa-check{% if message.is_read %}-double{% endif %}"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            {% else %}
+                <div class="no-forms">
+                    <i class="fas fa-comment-dots"></i>
+                    <div>
+                        <p>No messages yet</p>
+                        <small>Start the conversation by sending the first message!</small>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Message form at bottom of card -->
+        <form method="post" class="message-form" id="message-form" style="border-top: 1px solid var(--border-primary); padding-top: 20px; margin-top: 20px;">
+            {% csrf_token %}
+            <div style="display: flex; gap: 12px; align-items: flex-end;">
+                <textarea 
+                    name="content" 
+                    class="modern-input" 
+                    placeholder="Type your message..."
+                    rows="1"
+                    style="flex: 1; resize: vertical; min-height: 44px;"
+                    required></textarea>
+                <button type="submit" class="new-message-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    Send
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messagesContainer = document.getElementById('messages-container');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = messageForm.querySelector('textarea[name="content"]');
+    const sendBtn = messageForm.querySelector('.send-btn');
+    
+    // Auto-scroll to bottom of messages
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    
+    // Handle Enter key for sending messages
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            messageForm.submit();
+        }
+    });
+    
+    // Handle form submission
+    messageForm.addEventListener('submit', function(e) {
+        const content = messageInput.value.trim();
+        if (!content) {
+            e.preventDefault();
+            return;
+        }
+        
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    });
+    
+    // Scroll to bottom on page load
+    scrollToBottom();
+});
+
+// Function to delete entire conversation from detail page
+function deleteConversationFromDetail(conversationId, conversationTitle) {
+    // Show confirmation dialog
+    const confirmMessage = `Are you sure you want to delete the entire conversation with "${conversationTitle}"?\n\nThis will permanently delete all messages and cannot be undone.`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target.closest('.delete-conversation-btn');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+    button.disabled = true;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Make AJAX request to delete the conversation
+    fetch(`/messages/delete-conversation/${conversationId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success notification
+            showNotification(data.message, 'success');
+            
+            // Redirect to inbox after successful deletion
+            setTimeout(() => {
+                window.location.href = '/messages/';
+            }, 1500);
+            
+        } else {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            
+            // Show error message
+            showNotification(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        // Restore button state
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        
+        console.error('Error:', error);
+        showNotification('An error occurred while deleting the conversation.', 'error');
+    });
+}
+
+// Simple notification function
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'var(--success-color)' : 'var(--error-color)'};
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        min-width: 250px;
+        animation: slideInRight 0.3s ease forwards;
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Add keyframes for notification animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Format patient case details in messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messageContents = document.querySelectorAll('.message-content');
+    
+    messageContents.forEach(function(messageContent) {
+        let content = messageContent.innerHTML;
+        
+        // Format patient case header (📋 PATIENT CASE: NAME)
+        if (content.includes('📋 PATIENT CASE:')) {
+            content = content.replace(
+                /(📋 PATIENT CASE: [^<\n]+)/g,
+                '<div class="patient-case-header">$1</div>'
+            );
+            content = content.replace(
+                /(📅 Submitted: [^<\n]+)/g,
+                '<div class="case-submission-date">$1</div>'
+            );
+            
+            // Add status change indicator for administrators
+            if (content.includes('PHYSICIAN DECISION: ACCEPT')) {
+                content = content.replace(
+                    /(PHYSICIAN DECISION: ACCEPT)/g,
+                    '$1<div class="status-change-indicator accept">📈 Status Changed: PENDING → ACCEPTED</div>'
+                );
+            } else if (content.includes('PHYSICIAN DECISION: REJECT')) {
+                content = content.replace(
+                    /(PHYSICIAN DECISION: REJECT)/g,
+                    '$1<div class="status-change-indicator reject">📉 Status Changed: PENDING → REJECTED</div>'
+                );
+            } else if (content.includes('PHYSICIAN DECISION: NEEDS REVIEW')) {
+                content = content.replace(
+                    /(PHYSICIAN DECISION: NEEDS REVIEW)/g,
+                    '$1<div class="status-change-indicator review">🔄 Status Remains: PENDING (NEEDS REVIEW)</div>'
+                );
+            }
+        }
+        
+        if (content.includes('--- PATIENT CASE DETAILS ---') && content.includes('--- END CASE DETAILS ---')) {
+            // Extract case details
+            const caseStart = content.indexOf('--- PATIENT CASE DETAILS ---');
+            const caseEnd = content.indexOf('--- END CASE DETAILS ---');
+            
+            if (caseStart !== -1 && caseEnd !== -1) {
+                const beforeCase = content.substring(0, caseStart);
+                const caseDetails = content.substring(caseStart + '--- PATIENT CASE DETAILS ---'.length, caseEnd);
+                const afterCase = content.substring(caseEnd + '--- END CASE DETAILS ---'.length);
+                
+                // Format case details
+                const caseLines = caseDetails.split('\n').filter(line => line.trim());
+                let formattedCase = '<div class="patient-case-details">';
+                formattedCase += '<div class="case-details-header">';
+                formattedCase += '<i class="fas fa-file-medical"></i>';
+                formattedCase += '<span>Additional Case Information</span>';
+                formattedCase += '</div>';
+                formattedCase += '<div class="case-details-content">';
+                
+                caseLines.forEach(function(line) {
+                    if (line.includes('Patient:') || line.includes('Submitted:') || 
+                        line.includes('Current Status:') || line.includes('AI Recommendation:')) {
+                        formattedCase += '<div>' + line + '</div>';
+                    }
+                });
+                
+                formattedCase += '</div></div>';
+                
+                // Replace the message content
+                content = beforeCase + formattedCase + afterCase;
+            }
+        }
+        
+        // Update the message content
+        messageContent.innerHTML = content;
+    });
+});
+
+</script>
+{% endblock %}

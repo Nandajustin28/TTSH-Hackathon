@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Patient Form - MediFlow{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .upload-header {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .upload-header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .upload-header p {
+        color: #666;
+        margin: 0;
+    }
+    
+    .upload-form-container {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .patient-info-section {
+        margin-bottom: 30px;
+    }
+    
+    .patient-info-section h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 15px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .form-group input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        background: #f8f9fa;
+    }
+    
+    .upload-section h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 20px;
+    }
+    
+    .upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 60px 20px;
+        text-align: center;
+        background: #fafafa;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .upload-area:hover,
+    .upload-area.drag-over {
+        border-color: #4285f4;
+        background: #f0f4ff;
+    }
+    
+    .upload-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 20px;
+        opacity: 0.6;
+    }
+    
+    .upload-text {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    
+    .upload-subtext {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    
+    .select-file-btn {
+        background: #4285f4;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+    
+    .select-file-btn:hover {
+        background: #3367d6;
+    }
+    
+    .file-support-text {
+        color: #999;
+        font-size: 12px;
+        margin-top: 15px;
+    }
+    
+    .hidden {
+        display: none;
+    }
+    
+    .file-preview {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f0f4ff;
+        border-radius: 4px;
+        border: 1px solid #4285f4;
+    }
+    
+    .file-preview-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .file-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .file-icon {
+        width: 24px;
+        height: 24px;
+        background: #4285f4;
+        border-radius: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    
+    .submit-btn {
+        background: #4285f4;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        margin-top: 20px;
+    }
+    
+    .submit-btn:hover {
+        background: #3367d6;
+    }
+    
+    .submit-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .alert {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 4px;
+        background: #eee;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: #4285f4;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="dashboard-header">
+        <h1>Upload Patient Form</h1>
+        <p>AI will analyze the form and provide instant feedback</p>
+    </div>
+    
+    <!-- Display Django messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="upload-form-container">
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            
+            <!-- Patient Information Section -->
+            <div class="patient-info-section">
+                <h2>Patient Information</h2>
+                <div class="form-group">
+                    <label for="patient_name">Patient Name (Optional)</label>
+                    <input type="text" id="patient_name" name="patient_name" 
+                           placeholder="Will be extracted from form if not provided">
+                </div>
+            </div>
+            
+            <!-- Upload Form Section -->
+            <div class="upload-section">
+                <h2>Upload Form</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </div>
+                    <div class="upload-text">Drop your patient form here</div>
+                    <div class="upload-subtext">or click to browse</div>
+                    <button type="button" class="select-file-btn" id="selectFileBtn">Select File</button>
+                    <div class="file-support-text">Supported: PDF, PNG, JPG (Max 10MB)</div>
+                </div>
+                
+                <input type="file" id="fileInput" name="patient_form" accept=".pdf,.png,.jpg,.jpeg" class="hidden">
+                
+                <!-- File Preview -->
+                <div id="filePreview" class="file-preview hidden">
+                    <div class="file-preview-item">
+                        <div class="file-info">
+                            <div class="file-icon" id="fileIcon">PDF</div>
+                            <div>
+                                <div id="fileName">filename.pdf</div>
+                                <div id="fileSize" style="font-size: 12px; color: #666;">1.2 MB</div>
+                            </div>
+                        </div>
+                        <button type="button" id="removeFile" style="background: none; border: none; color: #999; cursor: pointer;">✕</button>
+                    </div>
+                    <div class="progress-bar hidden" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>Upload Form</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const selectFileBtn = document.getElementById('selectFileBtn');
+    const filePreview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileIcon = document.getElementById('fileIcon');
+    const removeFile = document.getElementById('removeFile');
+    const submitBtn = document.getElementById('submitBtn');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    let selectedFile = null;
+    
+    // Click to browse
+    selectFileBtn.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFile(e.target.files[0]);
+        }
+    });
+    
+    // Remove file
+    removeFile.addEventListener('click', () => {
+        selectedFile = null;
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+        submitBtn.disabled = true;
+    });
+    
+    function handleFile(file) {
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'image/png', 'image/jpg', 'image/jpeg'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Only PDF, PNG, and JPG files are allowed.');
+            return;
+        }
+        
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File size must be less than 10MB.');
+            return;
+        }
+        
+        selectedFile = file;
+        
+        // Update preview
+        fileName.textContent = file.name;
+        fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+        
+        // Set file icon based on type
+        if (file.type === 'application/pdf') {
+            fileIcon.textContent = 'PDF';
+            fileIcon.style.background = '#dc3545';
+        } else {
+            fileIcon.textContent = 'IMG';
+            fileIcon.style.background = '#28a745';
+        }
+        
+        filePreview.classList.remove('hidden');
+        submitBtn.disabled = false;
+    }
+    
+    // Form submission with progress
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        if (!selectedFile) {
+            e.preventDefault();
+            alert('Please select a file to upload.');
+            return;
+        }
+        
+        // Show progress bar
+        progressBar.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading...';
+        
+        // Simulate progress (in real implementation, you'd use XMLHttpRequest or fetch with progress tracking)
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            progressFill.style.width = progress + '%';
+            if (progress >= 100) {
+                clearInterval(interval);
+            }
+        }, 100);
+    });
+});
+</script>
+{% endblock %}

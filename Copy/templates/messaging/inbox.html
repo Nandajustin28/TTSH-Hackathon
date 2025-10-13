@@ -1,0 +1,639 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages - MediFlow AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/messaging.css' %}">
+<style>
+    /* Messages-specific styling that complements dashboard CSS */
+    .messaging-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+    }
+    
+    .section-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .section-title i {
+        color: var(--primary-color);
+        font-size: 24px;
+    }
+    
+    .section-subtitle {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin: 0;
+    }
+    
+    .new-message-btn {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-medium);
+    }
+    
+    .new-message-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-medium);
+        text-decoration: none;
+        color: white;
+    }
+    
+    /* Conversations list inherits dashboard card styling */
+    /* Enhanced conversation items */
+        .conversation-item-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid var(--border-primary);
+        transition: all 0.2s ease;
+    }
+    
+    .conversation-item-wrapper:hover {
+        background: var(--hover-bg);
+        border-radius: 8px;
+        margin: 0 -4px;
+        box-shadow: var(--shadow-light);
+    }
+    
+    .conversation-item-wrapper:hover .conversation-delete-btn {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+    .conversation-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        flex: 1;
+    }
+    
+    .conversation-item:hover {
+        color: var(--text-primary);
+        text-decoration: none;
+    }
+    
+    .conversation-delete-btn {
+        position: relative;
+        background: none;
+        border: none;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        padding: 16px 12px;
+        transition: all 0.2s ease;
+        opacity: 0;
+        transform: translateX(-10px);
+        font-size: 14px;
+    }
+    
+    .conversation-delete-btn:hover {
+        background: var(--error-bg);
+        color: var(--error-color);
+        border-radius: 6px;
+        transform: scale(1.1) translateX(0);
+    }
+    
+    .conversation-item:last-child {
+        border-bottom: none;
+    }
+    
+    .conversation-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 16px;
+        margin-bottom: 4px;
+    }
+    
+    .conversation-preview {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin: 0;
+        opacity: 0.8;
+    }
+    
+    .conversation-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+    
+    .conversation-time {
+        color: var(--text-tertiary);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    
+    .conversation-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .unread-badge {
+        background: var(--error-color);
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 12px;
+        min-width: 20px;
+        text-align: center;
+    }
+    
+    /* Enhanced empty state styling */
+    .empty-conversations {
+        text-align: center;
+        padding: 60px 40px;
+        color: var(--text-secondary);
+    }
+    
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        box-shadow: var(--shadow-medium);
+    }
+    
+    .empty-icon i {
+        font-size: 32px;
+        color: white;
+    }
+    
+    .empty-conversations h3 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+    }
+    
+    .empty-conversations p {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin-bottom: 32px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .start-conversation-btn {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        padding: 16px 32px;
+        border-radius: 12px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-medium);
+    }
+    
+    .start-conversation-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        text-decoration: none;
+        color: white;
+    }
+    
+    /* Enhanced conversation styling for better dark mode */
+    .conversation-item {
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .conversation-item:hover {
+        border-left-color: var(--primary-color);
+        transform: translateX(4px);
+    }
+    
+    .conversation-item.unread {
+        background: linear-gradient(90deg, 
+            rgba(59, 130, 246, 0.05) 0%, 
+            transparent 100%
+        );
+        border-left-color: var(--primary-color);
+    }
+    
+    .conversation-item.unread .conversation-title {
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    /* Avatar styling for conversations */
+    .conversation-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 18px;
+        margin-right: 16px;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-light);
+    }
+    
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+        .messaging-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        
+        .new-message-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .conversation-item {
+            padding: 16px 0;
+        }
+        
+        .conversation-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+        }
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+<div class="dashboard-content">
+    <!-- Dashboard Header with messaging stats -->
+    <div class="dashboard-header">
+        <h1>Messages</h1>
+        <p>Stay connected with your team and manage all communications in one place</p>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="stats-grid" style="margin-bottom: 32px;">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-comments"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Conversations</h3>
+                <div class="stat-number">{{ conversations|length|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Unread Messages</h3>
+                <div class="stat-number">{{ total_unread|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Active Contacts</h3>
+                <div class="stat-number">{{ conversations|length|default:0 }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Header -->
+    <div class="messaging-header">
+        <div class="section-info">
+            <div class="section-title">
+                <i class="fas fa-comments"></i>
+                <span>All Conversations</span>
+                {% if total_unread > 0 %}
+                    <span class="unread-badge">{{ total_unread }}</span>
+                {% endif %}
+            </div>
+            <p class="section-subtitle">Manage your communication and stay connected</p>
+        </div>
+        <a href="{% url 'messaging:start_conversation' %}" class="new-message-btn">
+            <i class="fas fa-plus"></i>
+            New Message
+        </a>
+    </div>
+    
+    <!-- Conversations Section - using dashboard card pattern -->
+    {% if conversations %}
+        <div class="dashboard-card">
+            <h2>Recent Conversations</h2>
+            <div class="conversations-list">
+            {% for conversation in conversations %}
+                {% with other_user=conversation.other_participant %}
+                <div class="conversation-item-wrapper">
+                    <a href="{% url 'messaging:conversation_detail' conversation.id %}" class="conversation-item">
+                            <div class="conversation-content">
+                                <div class="conversation-title">
+                                    {% if conversation.title %}
+                                        {{ conversation.title }}
+                                    {% else %}
+                                        {{ other_user.get_full_name|default:other_user.username }}
+                                    {% endif %}
+                                </div>
+                                {% with last_message=conversation.get_last_message %}
+                                    {% if last_message %}
+                                        <p class="conversation-preview">
+                                            {% if last_message.sender == user %}You: {% endif %}
+                                            {{ last_message.content|truncatechars:60 }}
+                                        </p>
+                                    {% else %}
+                                        <p class="conversation-preview">No messages yet</p>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                            <div class="conversation-meta">
+                                {% with last_message=conversation.get_last_message %}
+                                    {% if last_message %}
+                                        <span class="conversation-time">{{ last_message.created_at|timesince }} ago</span>
+                                    {% endif %}
+                                {% endwith %}
+                                {% if conversation.unread_count > 0 %}
+                                    <span class="unread-badge">{{ conversation.unread_count }}</span>
+                                {% endif %}
+                            </div>
+                    </a>
+                    <button class="conversation-delete-btn" title="Delete conversation" onclick="deleteConversation({{ conversation.id }}, '{% if conversation.title %}{{ conversation.title }}{% else %}{{ other_user.get_full_name|default:other_user.username }}{% endif %}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                {% endwith %}
+            {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if conversations.has_other_pages %}
+                <div class="pagination">
+                    {% if conversations.has_previous %}
+                        <a href="?page={{ conversations.previous_page_number }}">&laquo; Previous</a>
+                    {% endif %}
+                    
+                    {% for num in conversations.paginator.page_range %}
+                        {% if conversations.number == num %}
+                            <span class="current">{{ num }}</span>
+                        {% else %}
+                            <a href="?page={{ num }}">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if conversations.has_next %}
+                        <a href="?page={{ conversations.next_page_number }}">Next &raquo;</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="dashboard-card">
+            <h2>Recent Conversations</h2>
+            <div class="empty-conversations">
+                <div class="empty-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>No conversations yet</h3>
+                <p>Connect with colleagues and start meaningful conversations</p>
+                <a href="{% url 'messaging:start_conversation' %}" class="start-conversation-btn">
+                    <i class="fas fa-plus"></i>
+                    Start Your First Conversation
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Function to delete a conversation
+function deleteConversation(conversationId, conversationTitle) {
+    // Show confirmation dialog
+    const confirmMessage = `Are you sure you want to delete the conversation with "${conversationTitle}"?\n\nThis will permanently delete all messages in this conversation and cannot be undone.`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target.closest('.conversation-delete-btn');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    // Get CSRF token - try multiple methods
+    let csrfToken = null;
+    
+    // Method 1: Hidden input field
+    const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfTokenElement) {
+        csrfToken = csrfTokenElement.value;
+    }
+    
+    // Method 2: Meta tag fallback
+    if (!csrfToken) {
+        const csrfMetaElement = document.querySelector('meta[name=csrf-token]');
+        if (csrfMetaElement) {
+            csrfToken = csrfMetaElement.getAttribute('content');
+        }
+    }
+    
+    // Method 3: Cookie fallback (if available)
+    if (!csrfToken) {
+        const cookieMatch = document.cookie.match(/csrftoken=([^;]+)/);
+        if (cookieMatch) {
+            csrfToken = cookieMatch[1];
+        }
+    }
+    
+    if (!csrfToken) {
+        console.error('CSRF token not found with any method');
+        showNotification('CSRF token not found. Please refresh the page.', 'error');
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        return;
+    }
+    console.log('CSRF token found:', csrfToken ? 'Yes' : 'No');
+    
+    // Make AJAX request to delete the conversation
+    fetch(`/messages/delete-conversation/${conversationId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            // Remove the conversation with animation
+            const conversationWrapper = button.closest('.conversation-item-wrapper');
+            conversationWrapper.style.transition = 'all 0.3s ease';
+            conversationWrapper.style.opacity = '0';
+            conversationWrapper.style.transform = 'translateX(-100%)';
+            
+            setTimeout(() => {
+                conversationWrapper.remove();
+                
+                // Update conversation count
+                updateConversationCount();
+                
+                // Check if no conversations left and show empty state
+                const conversationsList = document.querySelector('.conversations-list');
+                if (conversationsList && conversationsList.children.length === 0) {
+                    location.reload(); // Reload to show "no conversations" message
+                }
+            }, 300);
+            
+            // Show success notification
+            showNotification(data.message, 'success');
+            
+        } else {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            
+            // Show error message
+            showNotification(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        // Restore button state
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        
+        console.error('Fetch error:', error);
+        console.error('Error details:', error.message);
+        showNotification('An error occurred while deleting the conversation: ' + error.message, 'error');
+    });
+}
+
+// Function to update conversation count in stats
+function updateConversationCount() {
+    const conversationCountElements = document.querySelectorAll('.stat-number');
+    conversationCountElements.forEach(element => {
+        if (element.closest('.stat-card').querySelector('h3').textContent.includes('Total Conversations')) {
+            const currentCount = parseInt(element.textContent) || 0;
+            const newCount = Math.max(0, currentCount - 1);
+            element.textContent = newCount;
+        }
+    });
+}
+
+// Simple notification function
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'var(--success-color)' : 'var(--error-color)'};
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        min-width: 300px;
+        animation: slideInRight 0.3s ease forwards;
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+}
+
+// Add keyframes for notification animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Prevent delete button clicks from triggering conversation link
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.conversation-delete-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+});
+</script>
+{% endblock %}

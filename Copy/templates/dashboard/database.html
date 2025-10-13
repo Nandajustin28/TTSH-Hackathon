@@ -1,0 +1,1755 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Forms Database - MediFlow{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="dashboard-content">
+    <!-- Header Section -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="header-text">
+                <h1>Patient Forms Database</h1>
+                <p>
+                    {% if user.profile.role == 'screening_physician' %}
+                        Review and make decisions on pending forms
+                    {% else %}
+                        View and search all processed forms
+                    {% endif %}
+                </p>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" class="theme-toggle-btn" title="Toggle theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+        <form method="GET" class="search-form">
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input 
+                        type="text" 
+                        name="search" 
+                        value="{{ search_query }}" 
+                        placeholder="Search by patient name..." 
+                        class="search-input"
+                    >
+                </div>
+                
+                {% if user.profile.role == 'administrator' %}
+                <div class="filter-dropdown">
+                    <i class="fas fa-filter filter-icon"></i>
+                    <select name="status" class="status-filter" onchange="this.form.submit()">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Privacy Toggle -->
+                <div class="privacy-toggle-container">
+                    <button type="button" id="privacyToggle" class="privacy-toggle-btn" title="Hide Patient Data">
+                        <i class="fas fa-eye"></i>
+                        <span class="privacy-text">Hide Data</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Forms Table Section -->
+    <div class="forms-section">
+        <div class="section-header">
+            <div class="section-title">
+                <i class="fas fa-file-medical"></i>
+                <span>
+                    {% if user.profile.role == 'screening_physician' %}
+                        Pending Forms ({{ total_forms }})
+                    {% else %}
+                        All Forms ({{ total_forms }})
+                    {% endif %}
+                </span>
+                
+                {% if user.profile.role == 'administrator' %}
+                <!-- Inline Category Filter Buttons -->
+                <div class="inline-category-buttons">
+                    <button class="inline-category-btn {% if not status_filter or status_filter == 'all' %}active{% endif %}" 
+                            onclick="filterByCategory('all')" 
+                            data-category="all"
+                            title="Show all forms">
+                        All ({{ total_forms }})
+                    </button>
+                    <button class="inline-category-btn pending-btn {% if status_filter == 'pending' %}active{% endif %}" 
+                            onclick="filterByCategory('pending')" 
+                            data-category="pending"
+                            title="Show pending forms">
+                        Pending ({{ pending_count }})
+                    </button>
+                    <button class="inline-category-btn accept-btn {% if status_filter == 'approved' %}active{% endif %}" 
+                            onclick="filterByCategory('approved')" 
+                            data-category="approved"
+                            title="Show accepted forms">
+                        Accepted ({{ approved_count }})
+                    </button>
+                    <button class="inline-category-btn reject-btn {% if status_filter == 'rejected' %}active{% endif %}" 
+                            onclick="filterByCategory('rejected')" 
+                            data-category="rejected"
+                            title="Show rejected forms">
+                        Rejected ({{ rejected_count }})
+                    </button>
+                    
+                    <!-- Time Sort Dropdown -->
+                    <div class="time-sort-container">
+                        <select class="time-sort-dropdown" onchange="applySorting(this.value)" title="Sort by upload time">
+                            <option value="desc" {% if sort_order == 'desc' or not sort_order %}selected{% endif %}>
+                                <i class="fas fa-arrow-down"></i> Newest First
+                            </option>
+                            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>
+                                <i class="fas fa-arrow-up"></i> Oldest First
+                            </option>
+                        </select>
+                        <i class="fas fa-sort sort-icon"></i>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Time Sort for Physicians -->
+                <div class="inline-category-buttons">
+                    <div class="time-sort-container">
+                        <select class="time-sort-dropdown" onchange="applySorting(this.value)" title="Sort by upload time">
+                            <option value="desc" {% if sort_order == 'desc' or not sort_order %}selected{% endif %}>
+                                Newest First
+                            </option>
+                            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>
+                                Oldest First
+                            </option>
+                        </select>
+                        <i class="fas fa-sort sort-icon"></i>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="forms-table-container">
+            {% if forms %}
+                <table class="forms-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Upload Date</th>
+                            <th>Status</th>
+                            <th class="sensitive-data">AI Decision</th>
+                            <th>Processing Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for form in forms %}
+                        <tr>
+                            <td class="patient-name">
+                                {{ form.patient_name|default:form.extracted_patient_name|default:"Unknown Patient" }}
+                                {% if user.profile.role == 'administrator' and form.has_messages %}
+                                    <span class="message-indicator" title="{{ form.unread_count }} message{{ form.unread_count|pluralize }} about this form">
+                                        <i class="fas fa-comment-dots"></i>
+                                        {% if form.unread_count > 0 %}
+                                            <span class="message-count">{{ form.unread_count }}</span>
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="upload-date">
+                                {{ form.uploaded_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="status">
+                                {% if user.profile.role == 'administrator' %}
+                                    <div class="status-dropdown-container">
+                                        <select class="status-dropdown" data-form-id="{{ form.id }}" onchange="updateFormStatus(this)">
+                                            <option value="pending" {% if form.status == 'pending' %}selected{% endif %}>PENDING</option>
+                                            <option value="approved" class="status-accept" {% if form.status == 'approved' %}selected{% endif %}>ACCEPT</option>
+                                            <option value="rejected" class="status-reject" {% if form.status == 'rejected' %}selected{% endif %}>REJECT</option>
+                                        </select>
+                                    </div>
+                                {% else %}
+                                    <!-- Physicians cannot change status directly. Display read-only badge and prompt to message admin. -->
+                                    <span class="status-badge {% if form.status == 'approved' %}status-approved{% elif form.status == 'rejected' %}status-rejected{% elif form.status == 'processing' %}status-processing{% else %}status-pending{% endif %}"
+                                          title="Status changes are managed by Admin. Use the message action to request updates.">
+                                        {{ form.status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="ai-decision sensitive-data">
+                                <span class="decision-text {% if form.ai_decision == 'accept' %}decision-accept{% elif form.ai_decision == 'reject' %}decision-reject{% else %}decision-analyzing{% endif %}">
+                                    {{ form.ai_decision_display }}
+                                </span>
+                            </td>
+                            <td class="processing-time">
+                                {{ form.processing_time_display }}
+                            </td>
+                            <td class="actions">
+                                <div class="action-buttons">
+                                    <button class="action-btn view-btn" title="View Patient File" onclick="viewPatientFile({{ form.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if user.profile.role == 'screening_physician' %}
+                                        <a href="{% url 'messaging:start_conversation' %}{% if form.uploaded_by %}?recipient={{ form.uploaded_by.username }}&message=Regarding patient form: {{ form.patient_name|default:form.extracted_patient_name|default:'Unknown Patient' }}{% else %}?message=Question about patient form: {{ form.patient_name|default:form.extracted_patient_name|default:'Unknown Patient' }}{% endif %}" 
+                                           class="action-btn message-btn" title="Message Administrator">
+                                            <i class="fas fa-comment"></i>
+                                        </a>
+                                    {% endif %}
+                                    {% if user.profile.role == 'administrator' %}
+                                        <!-- Always show message button for administrators -->
+                                        {% if form.has_messages and form.related_conversation %}
+                                            <!-- If there are existing messages, link to the conversation -->
+                                            <a href="{% url 'messaging:conversation_detail' conversation_id=form.related_conversation.id %}" 
+                                               class="action-btn message-btn admin-message-btn {% if form.has_physician_decision %}decision-message{% endif %}" 
+                                               title="{% if form.has_physician_decision %}Physician decision available{% else %}View messages about this form{% endif %}">
+                                                {% if form.has_physician_decision %}
+                                                    <i class="fas fa-gavel"></i>
+                                                {% else %}
+                                                    <i class="fas fa-comment-dots"></i>
+                                                {% endif %}
+                                                {% if form.unread_count > 0 %}
+                                                    <span class="admin-message-badge">{{ form.unread_count }}</span>
+                                                {% endif %}
+                                            </a>
+                                        {% else %}
+                                            <!-- If no existing messages, allow admin to start a conversation -->
+                                            <a href="{% url 'messaging:start_conversation' %}?message=Question about patient form: {{ form.patient_name|default:form.extracted_patient_name|default:'Unknown Patient' }}" 
+                                               class="action-btn message-btn" title="Start conversation about this form">
+                                                <i class="fas fa-comment"></i>
+                                            </a>
+                                        {% endif %}
+                                        <button class="action-btn delete-btn" title="Delete Form" onclick="deletePatientForm({{ form.id }}, '{{ form.patient_name|default:form.extracted_patient_name|default:'Unknown Patient' }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-forms-message">
+                    <div class="no-forms-icon">
+                        <i class="fas fa-file-medical"></i>
+                    </div>
+                    {% if user.profile.role == 'screening_physician' %}
+                        <h3>No pending forms</h3>
+                        <p>{% if search_query %}No pending forms match your search criteria.{% else %}All forms have been processed! Check back later for new submissions.{% endif %}</p>
+                    {% else %}
+                        <h3>No forms found</h3>
+                        <p>{% if search_query %}No forms match your search criteria.{% else %}Upload your first patient form to get started.{% endif %}</p>
+                        {% if not search_query %}
+                            <a href="{% url 'dashboard:upload_form' %}" class="upload-link">
+                                <i class="fas fa-plus"></i>
+                                Upload First Form
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Database Page Styles */
+.database-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-content {
+    padding: 0;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-text h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.header-text p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.theme-toggle-btn {
+    padding: 0.75rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.theme-toggle-btn:hover {
+    background: var(--hover-bg);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.dashboard-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.page-description {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Search and Filter Section */
+.search-filter-section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--border-primary);
+}
+
+.search-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: var(--input-bg);
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: var(--input-bg);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.search-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.filter-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-icon {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.status-filter {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: var(--input-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    min-width: 140px;
+    transition: all 0.3s ease;
+}
+
+.status-filter:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: var(--input-bg);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.status-filter option {
+    background: var(--input-bg);
+    color: var(--text-secondary);
+}
+
+/* Privacy Toggle Styles */
+.privacy-toggle-container {
+    display: flex;
+    align-items: center;
+}
+
+.privacy-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--input-bg);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.privacy-toggle-btn:hover {
+    background: var(--hover-bg);
+    border-color: var(--border-secondary);
+    color: var(--text-primary);
+}
+
+.privacy-toggle-btn.active {
+    background: var(--error-bg);
+    border-color: var(--error-color);
+    color: var(--error-color);
+}
+
+.privacy-toggle-btn.active:hover {
+    background: var(--error-bg);
+    opacity: 0.8;
+}
+
+.privacy-toggle-btn i {
+    font-size: 1rem;
+    transition: color 0.3s ease;
+}
+
+.privacy-text {
+    font-weight: 500;
+}
+
+/* Sensitive Data Hiding */
+.sensitive-data {
+    transition: all 0.4s ease;
+    position: relative;
+}
+
+.data-hidden .sensitive-data {
+    filter: blur(5px);
+    opacity: 0.3;
+    user-select: none;
+    pointer-events: none;
+}
+
+.data-hidden .sensitive-data::after {
+    content: '•••';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    color: var(--text-tertiary);
+    font-weight: bold;
+    pointer-events: none;
+}
+
+/* Privacy notification */
+.privacy-notification {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-primary);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-medium);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 320px;
+    animation: slideInRight 0.3s ease;
+}
+
+.privacy-notification i {
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.privacy-notification.error-notification {
+    border-left: 4px solid var(--error-color);
+}
+
+.privacy-notification.error-notification i {
+    color: var(--error-color);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Forms Section */
+.forms-section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-medium);
+    border: 1px solid var(--border-primary);
+}
+
+.section-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--card-bg);
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.section-title i {
+    color: var(--primary-color);
+}
+
+/* Inline Category Filter Buttons */
+.inline-category-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 1.5rem;
+    align-items: center;
+}
+
+.inline-category-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 20px;
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.inline-category-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-secondary);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.inline-category-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Specific inline category button colors */
+.inline-category-btn.pending-btn:hover:not(.active) {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+.inline-category-btn.pending-btn.active {
+    background: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+.inline-category-btn.accept-btn:hover:not(.active) {
+    background: var(--success-bg);
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.inline-category-btn.accept-btn.active {
+    background: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.inline-category-btn.reject-btn:hover:not(.active) {
+    background: var(--error-bg);
+    color: var(--error-color);
+    border-color: var(--error-color);
+}
+
+.inline-category-btn.reject-btn.active {
+    background: var(--error-color);
+    border-color: var(--error-color);
+}
+
+/* Time Sort Dropdown */
+.time-sort-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: 1rem;
+}
+
+.time-sort-dropdown {
+    appearance: none;
+    padding: 0.4rem 2rem 0.4rem 0.8rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 20px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+    min-width: 130px;
+}
+
+.time-sort-dropdown:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+
+.time-sort-dropdown:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.time-sort-dropdown option {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.sort-icon {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+    font-size: 0.7rem;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.time-sort-container:hover .sort-icon {
+    color: #63b3ed;
+}
+
+/* Table Styles */
+.forms-table-container {
+    overflow-x: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+}
+
+.forms-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    background: var(--bg-primary);
+}
+
+.forms-table th {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
+    white-space: nowrap;
+}
+
+.forms-table th:first-child {
+    border-left: none;
+}
+
+.forms-table th:last-child {
+    border-right: none;
+}
+
+.forms-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+    color: var(--text-secondary);
+    background: var(--bg-primary);
+    border-left: none;
+    border-right: none;
+}
+
+.forms-table tr {
+    background: var(--bg-primary);
+}
+
+.forms-table tr:hover {
+    background: var(--hover-bg);
+}
+
+.forms-table tr:hover td {
+    background: var(--hover-bg);
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-approved {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.status-rejected {
+    background: var(--error-bg);
+    color: var(--error-text);
+}
+
+.status-processing {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-color);
+}
+
+.status-pending {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+/* Status Dropdown Styles */
+.status-dropdown-container {
+    display: inline-block;
+    position: relative;
+}
+
+.status-dropdown {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 2px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    text-align: center;
+}
+
+.status-dropdown:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-light);
+    background: var(--hover-bg);
+}
+
+.status-dropdown:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.status-dropdown option {
+    padding: 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.status-dropdown option[value="pending"] {
+    background: var(--bg-secondary);
+    color: var(--warning-color);
+}
+
+.status-dropdown option[value="approved"], 
+.status-dropdown option.status-accept {
+    background: var(--bg-secondary);
+    color: var(--success-color);
+}
+
+.status-dropdown option[value="rejected"], 
+.status-dropdown option.status-reject {
+    background: var(--bg-secondary);
+    color: var(--error-color);
+}
+
+/* AI Decision Styles */
+.decision-text {
+    font-weight: 500;
+}
+
+.decision-accept {
+    color: var(--success-color);
+}
+
+.decision-reject {
+    color: var(--error-color);
+}
+
+.decision-analyzing {
+    color: var(--warning-color);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    padding: 0.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.view-btn {
+    background: var(--bg-tertiary);
+    color: var(--primary-color);
+}
+
+.view-btn:hover {
+    background: var(--hover-bg);
+    color: var(--primary-dark);
+}
+
+.message-btn {
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.message-btn:hover {
+    background: var(--primary-dark);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Message Indicators */
+.message-indicator {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    color: var(--primary-color);
+    font-size: 14px;
+    position: relative;
+    animation: pulse-glow 2s infinite;
+}
+
+.message-indicator i {
+    font-size: 16px;
+}
+
+.message-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--error-color);
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    border: 1px solid var(--card-bg);
+}
+
+/* Admin Message Button */
+.admin-message-btn {
+    background: var(--primary-color);
+    color: white;
+    position: relative;
+    animation: gentle-bounce 3s infinite;
+}
+
+.admin-message-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.admin-message-btn.decision-message {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    animation: decision-pulse 1.5s ease-in-out infinite;
+}
+
+.admin-message-btn.decision-message:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+}
+
+@keyframes decision-pulse {
+    0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    }
+    50% { 
+        transform: scale(1.02); 
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+    }
+}
+
+.admin-message-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--error-color);
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    border: 1px solid var(--card-bg);
+}
+
+/* Animations */
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes gentle-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-1px);
+    }
+}
+
+.delete-btn {
+    background: var(--error-bg);
+    color: var(--error-color);
+    transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+    background: var(--error-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.delete-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* File View Modal Styles */
+.file-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
+}
+
+.file-modal-content {
+    background: var(--card-bg);
+    border-radius: 12px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: var(--shadow-medium);
+    border: 1px solid var(--border-primary);
+}
+
+.file-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.file-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+}
+
+.file-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.file-modal-close:hover {
+    background: var(--hover-bg);
+    color: var(--error-color);
+}
+
+.file-modal-body {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.file-modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-modal-footer p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.file-modal-footer .btn {
+    padding: 0.5rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.file-modal-footer .btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+/* No Forms Message */
+.no-forms-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-secondary);
+}
+
+.no-forms-icon {
+    font-size: 4rem;
+    color: var(--text-tertiary);
+    margin-bottom: 1rem;
+}
+
+.no-forms-message h3 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.no-forms-message p {
+    font-size: 1rem;
+    margin: 0 0 1.5rem 0;
+}
+
+.upload-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-medium);
+}
+
+.upload-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    text-decoration: none;
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .database-container {
+        padding: 1rem;
+    }
+    
+    .search-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .search-input-wrapper {
+        max-width: none;
+    }
+    
+    .privacy-toggle-container {
+        justify-content: center;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border-primary);
+    }
+    
+    .privacy-toggle-btn {
+        min-width: 140px;
+    }
+    
+    .privacy-notification {
+        top: 1rem;
+        right: 1rem;
+        left: 1rem;
+        max-width: none;
+    }
+    
+    .forms-table {
+        font-size: 0.8rem;
+    }
+    
+    .forms-table th,
+    .forms-table td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .action-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+    }
+    
+    /* Inline category buttons responsive */
+    .section-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .inline-category-buttons {
+        margin-left: 0;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        align-items: center;
+    }
+    
+    .inline-category-btn {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.75rem;
+        border-radius: 16px;
+    }
+    
+    /* Time sort responsive */
+    .time-sort-container {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+    
+    .time-sort-dropdown {
+        width: 100%;
+        min-width: auto;
+        font-size: 0.75rem;
+        padding: 0.35rem 1.8rem 0.35rem 0.65rem;
+    }
+    
+    .sort-icon {
+        right: 0.5rem;
+        font-size: 0.65rem;
+    }
+}
+</style>
+
+<script>
+// Auto-submit search form on input with debouncing
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.search-input');
+    let searchTimeout;
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
+
+    // Initialize status dropdowns styling
+    const statusDropdowns = document.querySelectorAll('.status-dropdown');
+    statusDropdowns.forEach(dropdown => {
+        updateDropdownStyling(dropdown, dropdown.value);
+        dropdown.dataset.originalStatus = dropdown.value;
+    });
+
+    // Privacy Toggle Functionality
+    const privacyToggle = document.getElementById('privacyToggle');
+    const formsTable = document.querySelector('.forms-table-container');
+    const privacyText = document.querySelector('.privacy-text');
+    const privacyIcon = privacyToggle.querySelector('i');
+    
+    // Load saved privacy state
+    const savedPrivacyState = localStorage.getItem('hidePatientData') === 'true';
+    if (savedPrivacyState) {
+        togglePrivacyMode(true);
+    }
+    
+    privacyToggle.addEventListener('click', function() {
+        const isCurrentlyHidden = formsTable.classList.contains('data-hidden');
+        togglePrivacyMode(!isCurrentlyHidden);
+    });
+    
+    function togglePrivacyMode(hide) {
+        if (hide) {
+            // Hide sensitive data
+            formsTable.classList.add('data-hidden');
+            privacyToggle.classList.add('active');
+            privacyText.textContent = 'Show Data';
+            privacyIcon.className = 'fas fa-eye-slash';
+            localStorage.setItem('hidePatientData', 'true');
+            showNotification('Patient data is now hidden for privacy protection', 'shield-alt');
+        } else {
+            // Show sensitive data
+            formsTable.classList.remove('data-hidden');
+            privacyToggle.classList.remove('active');
+            privacyText.textContent = 'Hide Data';
+            privacyIcon.className = 'fas fa-eye';
+            localStorage.setItem('hidePatientData', 'false');
+            showNotification('Patient data is now visible', 'eye');
+        }
+    }
+    
+    function showNotification(message, iconClass) {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.privacy-notification');
+        existingNotifications.forEach(notification => notification.remove());
+        
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = 'privacy-notification';
+        notification.innerHTML = `
+            <i class="fas fa-${iconClass}"></i>
+            <span>${message}</span>
+        `;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease forwards';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+});
+
+// Status Update Function
+function updateFormStatus(selectElement) {
+    const formId = selectElement.dataset.formId;
+    const newStatus = selectElement.value;
+    const originalStatus = selectElement.dataset.originalStatus || selectElement.value;
+    
+    // Store original status if not already stored
+    if (!selectElement.dataset.originalStatus) {
+        selectElement.dataset.originalStatus = originalStatus;
+    }
+    
+    // Update dropdown styling based on selection
+    updateDropdownStyling(selectElement, newStatus);
+    
+    // Make AJAX call to update the backend
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        // If no CSRF token found, add one dynamically
+        const form = document.createElement('form');
+        form.style.display = 'none';
+        form.innerHTML = '{% csrf_token %}';
+        document.body.appendChild(form);
+    }
+    
+    fetch('{% url "dashboard:update_form_status" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || '{{ csrf_token }}',
+        },
+        body: JSON.stringify({
+            form_id: formId,
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success notification
+            const statusText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+            const iconClass = newStatus === 'approved' ? 'check-circle' : newStatus === 'rejected' ? 'times-circle' : 'clock';
+            
+            // Special message for reverting to pending
+            let notificationMessage = `Form status updated to ${statusText}`;
+            if (newStatus === 'pending' && originalStatus !== 'pending') {
+                notificationMessage = `Form reverted to Pending - Physicians will be notified for re-evaluation`;
+            }
+            
+            showStatusNotification(notificationMessage, iconClass, 'success');
+            
+            // Update the original status
+            selectElement.dataset.originalStatus = newStatus;
+        } else {
+            // Revert dropdown to original status on error
+            selectElement.value = originalStatus;
+            updateDropdownStyling(selectElement, originalStatus);
+            showStatusNotification(`Error: ${data.error}`, 'exclamation-triangle', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating form status:', error);
+        // Revert dropdown to original status on error
+        selectElement.value = originalStatus;
+        updateDropdownStyling(selectElement, originalStatus);
+        showStatusNotification('Failed to update form status', 'exclamation-triangle', 'error');
+    });
+}
+
+function updateDropdownStyling(selectElement, status) {
+    selectElement.className = 'status-dropdown';
+    if (status === 'approved') {
+        selectElement.style.background = 'var(--success-bg)';
+        selectElement.style.color = 'var(--success-text)';
+        selectElement.style.borderColor = 'var(--success-color)';
+    } else if (status === 'rejected') {
+        selectElement.style.background = 'var(--error-bg)';
+        selectElement.style.color = 'var(--error-text)';
+        selectElement.style.borderColor = 'var(--error-color)';
+    } else {
+        selectElement.style.background = 'var(--warning-bg)';
+        selectElement.style.color = 'var(--warning-text)';
+        selectElement.style.borderColor = 'var(--border-primary)';
+    }
+}
+
+function showStatusNotification(message, iconClass, type) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.privacy-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `privacy-notification ${type === 'error' ? 'error-notification' : ''}`;
+    notification.innerHTML = `
+        <i class="fas fa-${iconClass}"></i>
+        <span>${message}</span>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 4 seconds (longer for errors)
+    const timeout = type === 'error' ? 5000 : 3000;
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, timeout);
+}
+
+// Category Filtering Function
+function filterByCategory(category) {
+    // Update URL to include the status filter
+    const url = new URL(window.location);
+    if (category === 'all') {
+        url.searchParams.delete('status');
+    } else {
+        url.searchParams.set('status', category);
+    }
+    
+    // Preserve existing search query and sort order
+    const currentSearch = url.searchParams.get('search');
+    const currentSort = url.searchParams.get('sort');
+    if (currentSearch) {
+        url.searchParams.set('search', currentSearch);
+    }
+    if (currentSort) {
+        url.searchParams.set('sort', currentSort);
+    }
+    
+    // Navigate to the filtered URL
+    window.location.href = url.toString();
+}
+
+// Time Sorting Function
+function applySorting(sortOrder) {
+    // Update URL to include the sort parameter
+    const url = new URL(window.location);
+    url.searchParams.set('sort', sortOrder);
+    
+    // Preserve existing filters
+    const currentSearch = url.searchParams.get('search');
+    const currentStatus = url.searchParams.get('status');
+    if (currentSearch) {
+        url.searchParams.set('search', currentSearch);
+    }
+    if (currentStatus) {
+        url.searchParams.set('status', currentStatus);
+    }
+    
+    // Navigate to the sorted URL
+    window.location.href = url.toString();
+}
+
+// Function to view patient file
+function viewPatientFile(formId) {
+    // Show loading state
+    const button = event.target.closest('.view-btn');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    // Make AJAX request to get file information
+    fetch(`/view-file/${formId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            
+            if (data.success) {
+                // Check file type and handle accordingly
+                const fileExtension = data.file_extension.toLowerCase();
+                
+                if (['.pdf'].includes(fileExtension)) {
+                    // Open PDF in new tab
+                    window.open(data.file_url, '_blank');
+                } else if (['.jpg', '.jpeg', '.png'].includes(fileExtension)) {
+                    // Show image in modal
+                    showImageModal(data);
+                } else {
+                    // Download file for other types
+                    const link = document.createElement('a');
+                    link.href = data.file_url;
+                    link.download = data.file_name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            console.error('Error:', error);
+            alert('An error occurred while trying to view the file.');
+        });
+}
+
+// Function to show image in modal
+function showImageModal(fileData) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('fileViewModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'fileViewModal';
+        modal.className = 'file-modal';
+        modal.innerHTML = `
+            <div class="file-modal-content">
+                <div class="file-modal-header">
+                    <h3 id="modalTitle">Patient File</h3>
+                    <button class="file-modal-close" onclick="closeFileModal()">&times;</button>
+                </div>
+                <div class="file-modal-body">
+                    <img id="modalImage" src="" alt="Patient File" style="max-width: 100%; height: auto;">
+                </div>
+                <div class="file-modal-footer">
+                    <p id="modalInfo"></p>
+                    <button class="btn btn-primary" onclick="window.open(document.getElementById('modalImage').src, '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Open in New Tab
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Update modal content
+    document.getElementById('modalTitle').textContent = `File for ${fileData.patient_name}`;
+    document.getElementById('modalImage').src = fileData.file_url;
+    document.getElementById('modalInfo').textContent = `Uploaded: ${fileData.upload_date} | File: ${fileData.file_name}`;
+    
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// Function to close modal
+function closeFileModal() {
+    const modal = document.getElementById('fileViewModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Close modal when clicking outside or pressing ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeFileModal();
+    }
+});
+
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('fileViewModal');
+    if (e.target === modal) {
+        closeFileModal();
+    }
+});
+
+// Function to delete patient form
+function deletePatientForm(formId, patientName) {
+    // Show confirmation dialog
+    const confirmMessage = `Are you sure you want to delete the form for "${patientName}"?\n\nThis action cannot be undone and will permanently remove all associated data.`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target.closest('.delete-btn');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Make AJAX request to delete the form
+    fetch(`/delete-form/${formId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Remove the table row with animation
+            const row = button.closest('tr');
+            row.style.transition = 'all 0.3s ease';
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(-100%)';
+            
+            setTimeout(() => {
+                row.remove();
+                
+                // Update form counts if needed
+                updateFormCounts();
+                
+                // Check if table is empty and show no forms message
+                const tbody = document.querySelector('.forms-table tbody');
+                if (tbody && tbody.children.length === 0) {
+                    location.reload(); // Reload to show "no forms" message
+                }
+            }, 300);
+            
+        } else {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            
+            // Show error message
+            showNotification(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        // Restore button state
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        
+        console.error('Error:', error);
+        showNotification('An error occurred while deleting the form.', 'error');
+    });
+}
+
+// Function to update form counts after deletion
+function updateFormCounts() {
+    // Update the section title count
+    const sectionTitle = document.querySelector('.section-title span');
+    if (sectionTitle) {
+        const currentText = sectionTitle.textContent;
+        const match = currentText.match(/\((\d+)\)/);
+        if (match) {
+            const currentCount = parseInt(match[1]);
+            const newCount = Math.max(0, currentCount - 1);
+            sectionTitle.textContent = currentText.replace(/\(\d+\)/, `(${newCount})`);
+        }
+    }
+    
+    // Update category button counts
+    const activeButton = document.querySelector('.inline-category-btn.active');
+    if (activeButton) {
+        const buttonText = activeButton.textContent;
+        const match = buttonText.match(/\((\d+)\)/);
+        if (match) {
+            const currentCount = parseInt(match[1]);
+            const newCount = Math.max(0, currentCount - 1);
+            activeButton.textContent = buttonText.replace(/\(\d+\)/, `(${newCount})`);
+        }
+    }
+}
+
+// Initialize category button states on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click animation to inline category buttons
+    const categoryButtons = document.querySelectorAll('.inline-category-btn');
+    categoryButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Add click animation
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+        });
+    });
+    
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    
+    if (themeToggle && themeIcon) {
+        function updateThemeIcon() {
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+            themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        themeToggle.addEventListener('click', function() {
+            if (window.themeManager) {
+                window.themeManager.toggle();
+                updateThemeIcon();
+            }
+        });
+        
+        // Initial icon update
+        updateThemeIcon();
+        
+        // Listen for theme changes
+        document.addEventListener('themeChanged', function() {
+            updateThemeIcon();
+        });
+    }
+});
+</script>
+{% endblock %}

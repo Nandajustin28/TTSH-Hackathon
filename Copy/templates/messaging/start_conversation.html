@@ -1,0 +1,773 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Start Conversation - MediFlow AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/messaging.css' %}">
+<style>
+    /* Use dashboard form styling with dark mode support */
+    
+    .form-group {
+        margin-bottom: 24px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 16px 20px;
+        border: 2px solid var(--border-primary);
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: var(--card-bg);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-tertiary);
+    }
+    
+    .user-search-container {
+        position: relative;
+    }
+    
+    .user-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border: 2px solid var(--border-primary);
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: var(--shadow-medium);
+    }
+    
+    .user-suggestion {
+        padding: 12px 20px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-secondary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: background 0.2s ease;
+    }
+    
+    .user-suggestion:hover {
+        background: var(--hover-bg);
+    }
+    
+    .user-suggestion:last-child {
+        border-bottom: none;
+    }
+    
+    .suggestion-avatar {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .suggestion-info {
+        flex: 1;
+    }
+    
+    .suggestion-username {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+    
+    .suggestion-fullname {
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+    
+    .message-textarea {
+        min-height: 120px;
+        resize: vertical;
+        font-family: inherit;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: flex-end;
+        margin-top: 30px;
+    }
+    
+    .btn {
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+    }
+    
+    .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border: 2px solid var(--border-primary);
+    }
+    
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        text-decoration: none;
+        color: var(--text-primary);
+        border-color: var(--border-secondary);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .help-text {
+        font-size: 14px;
+        color: var(--text-tertiary);
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Removed Patient Case Selection styles */
+    
+    /* Decision Buttons Styling */
+    .decision-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+    
+    .decision-btn {
+        flex: 1;
+        min-width: 140px;
+        padding: 12px 20px;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .decision-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .decision-btn:hover::before {
+        left: 100%;
+    }
+    
+    .accept-btn {
+        border-color: #10b981;
+        color: #10b981;
+    }
+    
+    .accept-btn:hover {
+        background: #10b981;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+    
+    .accept-btn.active {
+        background: #10b981 !important;
+        color: white !important;
+        border-color: #10b981 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3) !important;
+    }
+    
+    .reject-btn {
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+    
+    .reject-btn:hover {
+        background: #ef4444;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+    }
+    
+    .reject-btn.active {
+        background: #ef4444 !important;
+        color: white !important;
+        border-color: #ef4444 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3) !important;
+    }
+    
+    .review-btn {
+        border-color: #f59e0b;
+        color: #f59e0b;
+    }
+    
+    .review-btn:hover {
+        background: #f59e0b;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+    }
+    
+    .review-btn.active {
+        background: #f59e0b !important;
+        color: white !important;
+        border-color: #f59e0b !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3) !important;
+    }
+    
+    .decision-btn.active {
+        animation: decision-pulse 0.6s ease-out;
+    }
+    
+    @keyframes decision-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    /* Decision Indicator */
+    .decision-indicator {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: slideInUp 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .decision-indicator i {
+        font-size: 16px;
+    }
+    
+    .decision-indicator span {
+        font-weight: 600;
+        flex: 1;
+    }
+    
+    .decision-indicator small {
+        opacity: 0.9;
+        font-size: 12px;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    .messages {
+        margin-bottom: 20px;
+    }
+    
+    .alert {
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        font-weight: 500;
+    }
+    
+    .alert-success {
+        background: var(--success-bg);
+        color: var(--success-text);
+        border: 1px solid var(--success-color);
+    }
+    
+    .alert-error {
+        background: var(--error-bg);
+        color: var(--error-text);
+        border: 1px solid var(--error-color);
+    }
+    
+    .alert-warning {
+        background: var(--warning-bg);
+        color: var(--warning-text);
+        border: 1px solid var(--warning-color);
+    }
+    
+    @media (max-width: 768px) {
+        .start-conversation-container {
+            padding: 0 16px;
+        }
+        
+        .conversation-form {
+            padding: 24px;
+            border-radius: 16px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h1>
+            <a href="{% url 'messaging:inbox' %}" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            Start New Conversation
+        </h1>
+        <p>Send a message to another user</p>
+    </div>
+    
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" style="margin-bottom: 20px; padding: 12px; border-radius: 8px; background: var(--error-bg); color: var(--error-text);">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Form in dashboard card -->
+    <div class="dashboard-card">
+        <h2>Message Details</h2>
+        <form method="post" id="conversation-form">
+            {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="username" class="form-label">
+                <i class="fas fa-user"></i>
+                Recipient Username
+            </label>
+            <div class="user-search-container">
+                <input 
+                    type="text" 
+                    name="username" 
+                    id="username" 
+                    class="form-control"
+                    placeholder="Start typing a username..."
+                    autocomplete="off"
+                    value="{{ recipient_username }}"
+                    required>
+                <div class="user-suggestions" id="user-suggestions"></div>
+            </div>
+            <div class="help-text">
+                <i class="fas fa-info-circle"></i>
+                Start typing to search for users
+            </div>
+        </div>
+
+        <!-- Patient Case Selection removed per request -->
+        
+        <!-- Decision Buttons for Physicians -->
+        {% if user.profile.role == 'screening_physician' %}
+        
+        <!-- Inline script to ensure function is available immediately -->
+        <script>
+        function selectDecision(decision, buttonElement) {
+            console.log('selectDecision called with:', decision);
+            
+            // Remove active from all decision buttons
+            document.querySelectorAll('.decision-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active to clicked button
+            buttonElement.classList.add('active');
+            
+            // Set hidden input
+            const decisionInput = document.getElementById('physician_decision');
+            if (decisionInput) {
+                decisionInput.value = decision;
+            }
+            
+            // Set message
+            const messageTextarea = document.getElementById('message');
+            if (messageTextarea) {
+                let autoMessage = '';
+                switch(decision) {
+                    case 'accept':
+                        autoMessage = 'PHYSICIAN DECISION: ACCEPT\\n\\nForm has been reviewed and approved for processing.';
+                        break;
+                    case 'reject':
+                        autoMessage = 'PHYSICIAN DECISION: REJECT\\n\\nForm requires attention or has issues that need to be addressed.';
+                        break;
+                    case 'review':
+                        autoMessage = 'PHYSICIAN DECISION: NEEDS REVIEW\\n\\nForm requires additional review or clarification.';
+                        break;
+                }
+                messageTextarea.value = autoMessage;
+            }
+            
+            console.log('Decision set to:', decision);
+        }
+        </script>
+        
+        <div class="form-group">
+            <label class="form-label">
+                <i class="fas fa-gavel"></i>
+                Quick Decision
+            </label>
+            <div class="decision-buttons">
+                <button type="button" class="decision-btn accept-btn" data-decision="accept" onclick="selectDecision('accept', this)">
+                    <i class="fas fa-check-circle"></i>
+                    Accept Form
+                </button>
+                <button type="button" class="decision-btn reject-btn" data-decision="reject" onclick="selectDecision('reject', this)">
+                    <i class="fas fa-times-circle"></i>
+                    Reject Form
+                </button>
+                <button type="button" class="decision-btn review-btn" data-decision="review" onclick="selectDecision('review', this)">
+                    <i class="fas fa-question-circle"></i>
+                    Needs Review
+                </button>
+            </div>
+            <div class="help-text">
+                <i class="fas fa-info-circle"></i>
+                Select a decision to automatically include it in your message
+            </div>
+            <input type="hidden" name="physician_decision" id="physician_decision" value="">
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="message" class="form-label">
+                <i class="fas fa-envelope"></i>
+                Additional Message (Optional)
+            </label>
+            <textarea 
+                name="message" 
+                id="message" 
+                class="form-control message-textarea"
+                placeholder="Add any additional notes or questions here..."
+                rows="4">{{ pre_message }}</textarea>
+            <div class="help-text">
+                <i class="fas fa-lightbulb"></i>
+                You can add additional context or leave empty if decision is sufficient
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'messaging:inbox' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" id="start-btn">
+                <i class="fas fa-paper-plane"></i>
+                Start Conversation
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Test that script is loading
+console.log('Script loading...');
+
+// Global function for inline button clicks - define on window immediately
+window.selectDecision = function(decision, buttonElement) {
+    console.log('selectDecision called:', decision);
+    
+    // Remove active from all decision buttons
+    document.querySelectorAll('.decision-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active to clicked button
+    buttonElement.classList.add('active');
+    
+    // Set hidden input
+    const decisionInput = document.getElementById('physician_decision');
+    if (decisionInput) {
+        decisionInput.value = decision;
+    }
+    
+    // Set message
+    const messageTextarea = document.getElementById('message');
+    if (messageTextarea) {
+        let autoMessage = '';
+        switch(decision) {
+            case 'accept':
+                autoMessage = 'PHYSICIAN DECISION: ACCEPT\n\nForm has been reviewed and approved for processing.';
+                break;
+            case 'reject':
+                autoMessage = 'PHYSICIAN DECISION: REJECT\n\nForm requires attention or has issues that need to be addressed.';
+                break;
+            case 'review':
+                autoMessage = 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review or clarification.';
+                break;
+        }
+        messageTextarea.value = autoMessage;
+    }
+    
+    // Update start button with decision-specific styling
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+        let buttonText = '';
+        let buttonStyle = '';
+        
+        switch(decision) {
+            case 'accept':
+                buttonText = '<i class="fas fa-check-circle"></i> Send Accept Decision';
+                buttonStyle = 'linear-gradient(135deg, #10b981, #059669)';
+                break;
+            case 'reject':
+                buttonText = '<i class="fas fa-times-circle"></i> Send Reject Decision';
+                buttonStyle = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                break;
+            case 'review':
+                buttonText = '<i class="fas fa-question-circle"></i> Send Review Request';
+                buttonStyle = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                break;
+        }
+        
+        startBtn.innerHTML = buttonText;
+        startBtn.style.background = buttonStyle;
+        startBtn.style.transform = 'translateY(-2px)';
+        startBtn.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.3)';
+    }
+    
+    // Add visual feedback
+    const decisionIndicator = document.createElement('div');
+    decisionIndicator.className = 'decision-indicator';
+    decisionIndicator.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>Decision selected: ${decision.toUpperCase()}</span>
+        <small>This will notify the administrator. Status changes are performed by Admin.</small>
+    `;
+    
+    // Insert after decision buttons
+    const decisionButtons = document.querySelector('.decision-buttons');
+    const existingIndicator = document.querySelector('.decision-indicator');
+    if (existingIndicator) {
+        existingIndicator.remove();
+    }
+    decisionButtons.insertAdjacentElement('afterend', decisionIndicator);
+    
+    console.log('Decision set via inline handler:', decision);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, checking for patient case selection...');
+    
+    const usernameInput = document.getElementById('username');
+    const suggestionsDiv = document.getElementById('user-suggestions');
+    const form = document.getElementById('conversation-form');
+    const startBtn = document.getElementById('start-btn');
+    const messageTextarea = document.getElementById('message');
+    const decisionInput = document.getElementById('physician_decision');
+    const decisionButtons = document.querySelectorAll('.decision-btn');
+    let searchTimeout;
+    
+    // User search functionality
+    usernameInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+        
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            fetch(`{% url 'messaging:user_search_ajax' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displaySuggestions(data.users);
+                })
+                .catch(error => {
+                    console.error('Error fetching users:', error);
+                });
+        }, 300);
+    });
+    
+    // Display user suggestions
+    function displaySuggestions(users) {
+        if (users.length === 0) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+        
+        const html = users.map(user => `
+            <div class="user-suggestion" data-username="${user.username}">
+                <div class="suggestion-avatar">
+                    ${user.username.charAt(0).toUpperCase()}
+                </div>
+                <div class="suggestion-info">
+                    <div class="suggestion-username">${user.username}</div>
+                    <div class="suggestion-fullname">${user.full_name}</div>
+                </div>
+            </div>
+        `).join('');
+        
+        suggestionsDiv.innerHTML = html;
+        suggestionsDiv.style.display = 'block';
+        
+        // Add click handlers
+        suggestionsDiv.querySelectorAll('.user-suggestion').forEach(suggestion => {
+            suggestion.addEventListener('click', function() {
+                usernameInput.value = this.dataset.username;
+                suggestionsDiv.style.display = 'none';
+            });
+        });
+    }
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!usernameInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+    
+    // Decision buttons functionality
+    console.log('Found decision buttons:', decisionButtons.length);
+    
+    decisionButtons.forEach((button, index) => {
+        console.log(`Setting up button ${index}:`, button.dataset.decision);
+        
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const decision = this.dataset.decision;
+            console.log('Decision button clicked:', decision);
+            
+            // Remove active class from all buttons
+            decisionButtons.forEach(btn => {
+                btn.classList.remove('active');
+                console.log('Removed active from:', btn.dataset.decision);
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            console.log('Added active to:', decision);
+            
+            // Set the hidden input value
+            if (decisionInput) {
+                decisionInput.value = decision;
+                console.log('Set decision input to:', decision);
+            }
+            
+            // Auto-populate message based on decision
+            if (messageTextarea) {
+                let autoMessage = '';
+                switch(decision) {
+                    case 'accept':
+                        autoMessage = 'PHYSICIAN DECISION: ACCEPT\n\nForm has been reviewed and approved for processing.';
+                        break;
+                    case 'reject':
+                        autoMessage = 'PHYSICIAN DECISION: REJECT\n\nForm requires attention or has issues that need to be addressed.';
+                        break;
+                    case 'review':
+                        autoMessage = 'PHYSICIAN DECISION: NEEDS REVIEW\n\nForm requires additional review or clarification.';
+                        break;
+                }
+                
+                // If there's existing text, append the decision
+                const existingText = messageTextarea.value.trim();
+                if (existingText && !existingText.includes('PHYSICIAN DECISION:')) {
+                    messageTextarea.value = autoMessage + '\n\nAdditional Notes:\n' + existingText;
+                } else if (!existingText) {
+                    messageTextarea.value = autoMessage;
+                }
+                console.log('Set message to:', autoMessage);
+            }
+            
+            // Update button text to show decision was made
+            if (startBtn) {
+                startBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Decision & Message';
+                startBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            }
+            
+            console.log('Decision selection complete');
+        });
+    });
+    
+    // Handle form submission
+    form.addEventListener('submit', function() {
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    });
+});
+
+// Test that function is in global scope
+console.log('selectDecision function exists:', typeof window.selectDecision);
+console.log('Function ready for onclick handlers');
+</script>
+{% endblock %}

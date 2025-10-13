@@ -1,0 +1,621 @@
+{% extends 'base.html' %}
+
+{% block title %}Time Saved Analytics - MediFlow{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <!-- Header Section -->
+    <div class="dashboard-header">
+        <h1>Time Saved Analytics</h1>
+        <p>Track processing efficiency and time savings</p>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon blue">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="metric-content">
+                <h3>Total Processed</h3>
+                <div class="metric-number">{{ total_processed }}</div>
+                <p class="metric-subtitle">Patient forms</p>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon purple">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="metric-content">
+                <h3>Avg Processing Time</h3>
+                <div class="metric-number">{{ avg_processing_minutes }}m</div>
+                <p class="metric-subtitle">Under target!</p>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon green">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="metric-content">
+                <h3>Time Saved</h3>
+                <div class="metric-number">{{ total_time_saved_hours }}h</div>
+                <p class="metric-subtitle">vs manual processing</p>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon orange">
+                <i class="fas fa-target"></i>
+            </div>
+            <div class="metric-content">
+                <h3>Target Achievement</h3>
+                <div class="metric-number">{{ target_achievement_percentage }}%</div>
+                <p class="metric-subtitle">{{ forms_under_target }} forms under {{ target_minutes }}min</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Status Card -->
+    <div class="performance-card {% if performance_status == 'excellent' %}performance-excellent{% else %}performance-good{% endif %}">
+        <div class="performance-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="performance-content">
+            <h3>Excellent Performance!</h3>
+            <p>Your average processing time of {{ avg_processing_minutes }} minutes is well below the {{ target_minutes }}-minute target.</p>
+            <div class="performance-bar">
+                <div class="bar-labels">
+                    <span>Target: {{ target_minutes }} minutes</span>
+                    <span>Current: {{ avg_processing_minutes }} minutes</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 10%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Processing Time Trend (Last 7 Days)</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="processingTimeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Daily Form Volume</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="dailyVolumeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Insights Section -->
+    <div class="insights-section">
+        <h2>Key Insights</h2>
+        <div class="insights-grid">
+            <div class="insight-card">
+                <div class="insight-icon blue">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="insight-content">
+                    <h3>AI Processing Speed</h3>
+                    <div class="insight-value">{{ ai_processing_seconds }}s</div>
+                    <p class="insight-subtitle">Average AI analysis time per form</p>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon green">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="insight-content">
+                    <h3>Efficiency Gain</h3>
+                    <div class="insight-value green">{{ efficiency_gain }}%</div>
+                    <p class="insight-subtitle">Faster than manual processing</p>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon purple">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="insight-content">
+                    <h3>Success Rate</h3>
+                    <div class="insight-value">{{ success_rate }}%</div>
+                    <p class="insight-subtitle">Forms processed under 6 minutes</p>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon orange">
+                    <i class="fas fa-save"></i>
+                </div>
+                <div class="insight-content">
+                    <h3>Total Hours Saved</h3>
+                    <div class="insight-value orange">{{ total_time_saved_hours }}h</div>
+                    <p class="insight-subtitle">Compared to 15min manual processing</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Time Saved Analytics Styles */
+.time-saved-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 0.5rem 0;
+}
+
+.page-description {
+    color: #666;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.metric-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.metric-icon.blue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.metric-icon.purple {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.metric-icon.green {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.metric-icon.orange {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-content h3 {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0 0 0.5rem 0;
+    font-weight: 500;
+}
+
+.metric-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 0.25rem 0;
+}
+
+.metric-subtitle {
+    font-size: 0.8rem;
+    color: #999;
+    margin: 0;
+}
+
+/* Performance Card */
+.performance-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    border-left: 4px solid #10b981;
+}
+
+.performance-excellent {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border-left-color: #10b981;
+}
+
+.performance-good {
+    background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+    border-left-color: #f59e0b;
+}
+
+.performance-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #10b981;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.performance-content {
+    flex: 1;
+}
+
+.performance-content h3 {
+    font-size: 1.25rem;
+    color: #1a1a1a;
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+}
+
+.performance-content p {
+    color: #666;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+}
+
+.performance-bar {
+    width: 100%;
+}
+
+.bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chart-header {
+    margin-bottom: 1.5rem;
+}
+
+.chart-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+}
+
+.chart-container {
+    height: 300px;
+    position: relative;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .time-saved-container {
+        padding: 1rem;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .metric-card {
+        padding: 1rem;
+    }
+    
+    .performance-card {
+        padding: 1.5rem;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+/* Key Insights Section */
+.insights-section {
+    margin-top: 2rem;
+}
+
+.insights-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 1.5rem 0;
+}
+
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.insight-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.insight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.insight-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.insight-icon.blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.insight-icon.green {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+}
+
+.insight-icon.purple {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.insight-icon.orange {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.insight-content {
+    flex: 1;
+}
+
+.insight-content h3 {
+    font-size: 0.95rem;
+    color: #374151;
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+}
+
+.insight-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 0.25rem 0;
+    line-height: 1;
+}
+
+.insight-value.green {
+    color: #059669;
+}
+
+.insight-value.orange {
+    color: #ea580c;
+}
+
+.insight-subtitle {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+    .metric-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .metric-icon {
+        margin-bottom: 0.5rem;
+    }
+    
+    .insights-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .insight-card {
+        padding: 1rem;
+    }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart data from Django context
+    const labels = {{ last_7_days|safe }};
+    const processingTimeData = {{ processing_time_data|safe }};
+    const dailyVolumeData = {{ daily_volume_data|safe }};
+
+    // Processing Time Trend Chart
+    const processingTimeCtx = document.getElementById('processingTimeChart').getContext('2d');
+    new Chart(processingTimeCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Minutes',
+                data: processingTimeData,
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#4f46e5',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 4,
+                    ticks: {
+                        stepSize: 1,
+                        color: '#6b7280'
+                    },
+                    grid: {
+                        color: '#f3f4f6',
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#6b7280'
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            elements: {
+                point: {
+                    hoverRadius: 6
+                }
+            }
+        }
+    });
+
+    // Daily Volume Chart
+    const dailyVolumeCtx = document.getElementById('dailyVolumeChart').getContext('2d');
+    new Chart(dailyVolumeCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Forms',
+                data: dailyVolumeData,
+                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                borderColor: '#10b981',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 4,
+                    ticks: {
+                        stepSize: 1,
+                        color: '#6b7280'
+                    },
+                    grid: {
+                        color: '#f3f4f6',
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#6b7280'
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

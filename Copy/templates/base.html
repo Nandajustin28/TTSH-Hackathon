@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MediFlow - Referral Automation{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Global Dark Mode Variables -->
+    <style>
+        :root {
+            /* Light mode variables */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --border-primary: #e2e8f0;
+            --border-secondary: #f1f5f9;
+            --border-light: #f1f5f9;
+            --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --sidebar-bg: #ffffff;
+            --sidebar-text: #1e293b;
+            --card-bg: #ffffff;
+            --input-bg: #ffffff;
+            --hover-bg: #f8fafc;
+            --primary-color: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --accent-color: #1d4ed8;
+            --success-color: #10b981;
+            --success-bg: #dcfce7;
+            --success-text: #166534;
+            --error-color: #ef4444;
+            --error-bg: #fee2e2;
+            --error-text: #991b1b;
+            --warning-color: #f59e0b;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+        }
+
+        [data-theme="dark"] {
+            /* Dark mode variables */
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #e2e8f0;
+            --text-tertiary: #94a3b8;
+            --border-primary: #334155;
+            --border-secondary: #475569;
+            --border-light: #334155;
+            --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.4);
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #f8fafc;
+            --card-bg: #1e293b;
+            --input-bg: #334155;
+            --hover-bg: #334155;
+            --primary-color: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --accent-color: #60a5fa;
+            --success-color: #10b981;
+            --success-bg: #064e3b;
+            --success-text: #6ee7b7;
+            --error-color: #ef4444;
+            --error-bg: #7f1d1d;
+            --error-text: #fca5a5;
+            --warning-color: #f59e0b;
+            --warning-bg: #78350f;
+            --warning-text: #fcd34d;
+        }
+
+        /* Apply variables globally */
+        body {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body data-theme="light">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h3>MediFlow</h3>
+                        <span>Referral Automation</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                {% if user.profile.role == 'administrator' %}
+                    <h4>ADMINISTRATOR PORTAL</h4>
+                    <ul>
+                        <li class="nav-item" data-page="dashboard">
+                            <a href="{% url 'dashboard:home' %}">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="upload">
+                            <a href="{% url 'dashboard:upload_form' %}">
+                                <i class="fas fa-upload"></i>
+                                Upload Form
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="database">
+                            <a href="{% url 'dashboard:database' %}">
+                                <i class="fas fa-database"></i>
+                                Database
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="time-saved">
+                            <a href="{% url 'dashboard:time_saved' %}">
+                                <i class="fas fa-clock"></i>
+                                Time Saved
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="messages">
+                            <a href="{% url 'messaging:inbox' %}">
+                                <i class="fas fa-comments"></i>
+                                Messages
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="settings">
+                            <a href="{% url 'dashboard:settings' %}">
+                                <i class="fas fa-cog"></i>
+                                Settings
+                            </a>
+                        </li>
+                    </ul>
+                {% else %}
+                    <h4>PHYSICIAN PORTAL</h4>
+                    <ul>
+                        <li class="nav-item" data-page="database">
+                            <a href="{% url 'dashboard:database' %}">
+                                <i class="fas fa-database"></i>
+                                Database
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="messages">
+                            <a href="{% url 'messaging:inbox' %}">
+                                <i class="fas fa-comments"></i>
+                                Messages
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="settings">
+                            <a href="{% url 'dashboard:settings' %}">
+                                <i class="fas fa-cog"></i>
+                                Settings
+                            </a>
+                        </li>
+                    </ul>
+                {% endif %}
+            </nav>
+            
+            <div class="sidebar-footer">
+                {% if user.is_authenticated %}
+                <div class="user-profile">
+                    <div class="user-avatar">{{ user.username|first|upper }}</div>
+                    <div class="user-info">
+                        <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+                        <span class="user-role">{{ user.profile.get_role_display|default:"User" }}</span>
+                    </div>
+                    <div class="user-actions">
+                        <a href="{% url 'accounts:logout' %}" class="logout-btn" title="Logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+    
+    <script>
+        // Set active navigation based on current URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            // Remove active class from all items
+            navItems.forEach(item => item.classList.remove('active'));
+            
+            // Set active based on current path
+            if (currentPath.includes('/messages/')) {
+                document.querySelector('[data-page="messages"]').classList.add('active');
+            } else if (currentPath === '/' || currentPath.includes('/dashboard/')) {
+                if (currentPath.includes('/upload/')) {
+                    document.querySelector('[data-page="upload"]').classList.add('active');
+                } else if (currentPath.includes('/database/')) {
+                    document.querySelector('[data-page="database"]').classList.add('active');
+                } else if (currentPath.includes('/time-saved/')) {
+                    document.querySelector('[data-page="time-saved"]').classList.add('active');
+                } else if (currentPath.includes('/settings/')) {
+                    document.querySelector('[data-page="settings"]').classList.add('active');
+                } else {
+                    document.querySelector('[data-page="dashboard"]').classList.add('active');
+                }
+            }
+        });
+
+        // Global Theme Management System
+        class ThemeManager {
+            constructor() {
+                this.theme = localStorage.getItem('theme') || 'light';
+                this.init();
+            }
+
+            init() {
+                this.applyTheme(this.theme);
+                this.setupThemeListeners();
+            }
+
+            applyTheme(theme) {
+                document.body.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                this.theme = theme;
+                
+                // Update theme selection in settings if present
+                const themeInputs = document.querySelectorAll('input[name="theme_mode"]');
+                themeInputs.forEach(input => {
+                    input.checked = input.value === theme;
+                });
+
+                // Dispatch custom event for other components
+                window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme } }));
+            }
+
+            setTheme(theme) {
+                if (theme === 'auto') {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    this.applyTheme(prefersDark ? 'dark' : 'light');
+                } else {
+                    this.applyTheme(theme);
+                }
+            }
+
+            setupThemeListeners() {
+                // Listen for system theme changes when in auto mode
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    if (localStorage.getItem('theme_preference') === 'auto') {
+                        this.applyTheme(e.matches ? 'dark' : 'light');
+                    }
+                });
+
+                // Listen for theme changes from settings
+                document.addEventListener('change', (e) => {
+                    if (e.target.name === 'theme_mode') {
+                        localStorage.setItem('theme_preference', e.target.value);
+                        this.setTheme(e.target.value);
+                    }
+                });
+            }
+
+            toggle() {
+                const newTheme = this.theme === 'light' ? 'dark' : 'light';
+                this.setTheme(newTheme);
+            }
+        }
+
+        // Initialize theme manager
+        window.themeManager = new ThemeManager();
+
+        // Navigation active state management
+        function setActiveNavItem() {
+            // Get current path
+            const currentPath = window.location.pathname;
+            console.log('Current path:', currentPath); // Debug log
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Map URLs to data-page attributes
+            const urlToPageMap = {
+                '/': 'dashboard',
+                '/upload/': 'upload',
+                '/database/': 'database',
+                '/time-saved/': 'time-saved',
+                '/settings/': 'settings',
+                '/messages/': 'messages',
+                '/messages/inbox/': 'messages'
+            };
+            
+            // Find matching page and set active
+            let activePage = urlToPageMap[currentPath];
+            
+            // Handle messaging sub-pages (any path starting with /messages/)
+            if (currentPath.startsWith('/messages/')) {
+                activePage = 'messages';
+            }
+            
+            // Set active state
+            if (activePage) {
+                const activeNavItem = document.querySelector(`[data-page="${activePage}"]`);
+                if (activeNavItem) {
+                    activeNavItem.classList.add('active');
+                    console.log('Active page set:', activePage, activeNavItem); // Debug log
+                } else {
+                    console.log('Nav item not found for:', activePage); // Debug log
+                }
+            } else {
+                console.log('No matching page found for:', currentPath); // Debug log
+            }
+        }
+
+        // Initialize theme based on saved preference and set active nav
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedThemePreference = localStorage.getItem('theme_preference') || 'light';
+            window.themeManager.setTheme(savedThemePreference);
+            
+            // Set active navigation item
+            setActiveNavItem();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+/* Messaging Module CSS - Dark Mode Optimized */
+/* This file contains shared styling for all messaging templates */
+
+/* Global messaging variables that extend the base theme */
+:root {
+    --message-bg-sent: linear-gradient(135deg, #3b82f6, #60a5fa);
+    --message-bg-received: var(--card-bg);
+    --message-shadow-sent: 0 2px 12px rgba(59, 130, 246, 0.3);
+    --message-shadow-received: var(--shadow-light);
+    --conversation-hover-bg: var(--hover-bg);
+    --conversation-active-border: var(--primary-color);
+}
+
+[data-theme="dark"] {
+    --message-bg-sent: linear-gradient(135deg, #3b82f6, #60a5fa);
+    --message-bg-received: var(--bg-tertiary);
+    --message-shadow-sent: 0 2px 12px rgba(96, 165, 250, 0.2);
+    --message-shadow-received: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --conversation-hover-bg: var(--bg-tertiary);
+    --conversation-active-border: var(--accent-color);
+}
+
+/* Enhanced scrollbar styling for dark mode */
+.messages-container::-webkit-scrollbar,
+.user-suggestions::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track,
+.user-suggestions::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb,
+.user-suggestions::-webkit-scrollbar-thumb {
+    background: var(--border-primary);
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover,
+.user-suggestions::-webkit-scrollbar-thumb:hover {
+    background: var(--border-secondary);
+}
+
+/* Message bubble animations */
+.message-bubble {
+    animation: messageSlideIn 0.3s ease-out;
+    transform-origin: bottom;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Typing indicator (for future implementation) */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    font-size: 14px;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--text-tertiary);
+    border-radius: 50%;
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.typing-dot:nth-child(3) { animation-delay: 0; }
+
+@keyframes typingBounce {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Enhanced form elements for messaging */
+.messaging-form-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.messaging-form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.messaging-form-input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--border-primary);
+    border-radius: 12px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 15px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.messaging-form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: var(--card-bg);
+}
+
+.messaging-form-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Status indicators */
+.message-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.message-status.delivered {
+    color: var(--success-color);
+}
+
+.message-status.read {
+    color: var(--primary-color);
+}
+
+/* Conversation badges */
+.conversation-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.conversation-badge.unread {
+    background: var(--error-color);
+    color: white;
+}
+
+.conversation-badge.new {
+    background: var(--success-color);
+    color: white;
+}
+
+/* Mobile-specific messaging improvements */
+@media (max-width: 768px) {
+    .message-bubble {
+        max-width: 85%;
+        font-size: 15px;
+    }
+    
+    .messaging-form-input {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .new-message-btn {
+        padding: 14px 20px;
+        font-size: 15px;
+    }
+    
+    .conversation-item {
+        padding: 16px 0;
+    }
+}

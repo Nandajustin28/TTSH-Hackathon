@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - MediFlow AI</title>
+    {% load static %}
+<!-- Import Inter font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Import Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+   :root {
+       /* Light mode variables */
+       --input-bg: #ffffff;
+       --input-border: #e0e0e0;
+       --input-text: #1f2937;
+       --input-shadow-subtle: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+       --input-shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.3);
+       --primary-color: #4f46e5;
+       --placeholder-color: #9ca3af;
+       --card-bg: rgba(255, 255, 255, 0.95);
+       --text-primary: #1f2937;
+       --text-secondary: #6b7280;
+       --border-color: #e5e7eb;
+   }
+
+   [data-theme="dark"] {
+       /* Dark mode variables */
+       --input-bg: #4a5568;
+       --input-border: #718096;
+       --input-text: #ffffff;
+       --input-shadow-subtle: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+       --input-shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.4);
+       --primary-color: #6366f1;
+       --placeholder-color: #a0aec0;
+       --card-bg: rgba(55, 65, 81, 0.95);
+       --text-primary: #f9fafb;
+       --text-secondary: #d1d5db;
+       --border-color: #4b5563;
+   }
+
+
+   * {
+       box-sizing: border-box;
+   }
+  
+   body {
+       margin: 0;
+       font-family: 'Inter', sans-serif;
+       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+       min-height: 100vh;
+   }
+  
+   .auth-container {
+       min-height: 100vh;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       padding: 20px;
+       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+   }
+  
+   .auth-card {
+       background: var(--card-bg);
+       backdrop-filter: blur(10px);
+       border-radius: 24px;
+       padding: 48px 40px;
+       width: 100%;
+       max-width: 440px;
+       box-shadow:
+           0 32px 64px rgba(0, 0, 0, 0.15),
+           0 16px 32px rgba(0, 0, 0, 0.1),
+           inset 0 1px 0 rgba(255, 255, 255, 0.4);
+       text-align: center;
+       border: 1px solid rgba(255, 255, 255, 0.2);
+   }
+  
+   .auth-logo {
+       width: 88px;
+       height: 88px;
+       background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+       border-radius: 22px;
+       margin: 0 auto 24px;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       color: white;
+       font-size: 28px;
+       box-shadow: 0 8px 24px rgba(238, 90, 36, 0.3);
+   }
+  
+   .auth-title {
+       font-size: 32px;
+       font-weight: 800;
+       color: var(--text-primary);
+       margin-bottom: 8px;
+       letter-spacing: -0.5px;
+   }
+  
+   .auth-subtitle {
+       color: var(--text-secondary);
+       margin-bottom: 36px;
+       font-size: 16px;
+       font-weight: 400;
+   }
+  
+   .form-group {
+       margin-bottom: 24px;
+       text-align: left;
+       position: relative;
+   }
+  
+   .form-label,
+   .label {
+       display: block;
+       margin-bottom: 0.5rem;
+       font-weight: 600;
+       color: var(--text-primary);
+       font-size: 14px;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+   }
+  
+   /* MODERN INPUT STYLING - High specificity to override Django defaults */
+   .auth-card input[type="text"],
+   .auth-card input[type="password"],
+   .auth-card input[type="email"],
+   .form-group .form-control,
+   .form-group .modern-input,
+   input.form-control,
+   input.modern-input {
+       width: 100% !important;
+       max-width: 400px !important;
+       padding: 1rem 1.25rem !important;
+       font-size: 1rem !important;
+       line-height: 1.5 !important;
+       color: var(--input-text) !important;
+       background-color: var(--input-bg) !important;
+       border: 1px solid var(--input-border) !important;
+       border-radius: 0.75rem !important; /* Rounded corners */
+       transition: all 0.2s ease-in-out !important;
+       box-shadow: var(--input-shadow-subtle) !important; /* Initial subtle shadow */
+       outline: none !important; /* Remove default focus outline */
+       font-family: 'Inter', sans-serif !important;
+   }
+  
+   /* Focus State: More defined border and shadow */
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background-color: var(--input-bg) !important;
+        }   /* Placeholder Styling */
+   .auth-card input[type="text"]::placeholder,
+   .auth-card input[type="password"]::placeholder,
+   .auth-card input[type="email"]::placeholder,
+   .form-group .form-control::placeholder,
+   .form-group .modern-input::placeholder,
+   input.form-control::placeholder,
+   input.modern-input::placeholder {
+       color: var(--placeholder-color) !important;
+       font-style: italic !important;
+       opacity: 1 !important; /* Override default browser opacity in Firefox */
+   }
+  
+   .auth-card input[type="text"]:hover:not(:focus),
+   .auth-card input[type="password"]:hover:not(:focus),
+   .auth-card input[type="email"]:hover:not(:focus),
+   .form-group .form-control:hover:not(:focus),
+   .form-group .modern-input:hover:not(:focus),
+   input.form-control:hover:not(:focus),
+   input.modern-input:hover:not(:focus) {
+       border-color: #d1d5db !important;
+       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08) !important;
+   }
+
+   .password-input-container {
+       position: relative;
+       display: flex;
+       align-items: center;
+       pointer-events: auto;
+   }
+
+   .password-input-container input {
+       padding-right: 50px !important;
+   }
+
+   .password-toggle {
+       position: absolute;
+       right: 12px;
+       top: 50%;
+       transform: translateY(-50%);
+       background: none;
+       border: none;
+       cursor: pointer;
+       color: var(--text-secondary);
+       font-size: 18px;
+       padding: 8px;
+       border-radius: 4px;
+       transition: all 0.3s ease;
+       z-index: 1000;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       min-width: 32px;
+       min-height: 32px;
+       pointer-events: auto;
+   }
+
+   .password-toggle:hover {
+       color: #667eea;
+   }
+
+   .password-toggle:focus {
+       outline: none;
+       color: #667eea;
+   }
+
+   .password-toggle.active {
+       color: #e53e3e;
+   }
+
+   .password-toggle.active:hover {
+       color: #c53030;
+       opacity: 0.8;
+   }
+  
+   .btn-primary {
+       width: 100%;
+       padding: 16px 24px;
+       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+       border: none;
+       border-radius: 12px;
+       color: white;
+       font-size: 16px;
+       font-weight: 600;
+       cursor: pointer;
+       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+       margin-top: 16px;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+       position: relative;
+       overflow: hidden;
+   }
+  
+   .btn-primary::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: -100%;
+       width: 100%;
+       height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+       transition: left 0.5s;
+   }
+  
+   .btn-primary:hover {
+       transform: translateY(-2px);
+       box-shadow:
+           0 16px 32px rgba(102, 126, 234, 0.4),
+           0 8px 16px rgba(0, 0, 0, 0.1);
+   }
+  
+   .btn-primary:hover::before {
+       left: 100%;
+   }
+  
+   .btn-primary:active {
+       transform: translateY(0);
+       box-shadow:
+           0 8px 16px rgba(102, 126, 234, 0.3),
+           0 4px 8px rgba(0, 0, 0, 0.1);
+   }
+
+   .role-selection-container {
+       display: grid;
+       grid-template-columns: 1fr 1fr;
+       gap: 16px;
+       margin-top: 12px;
+   }
+
+   .role-option {
+       position: relative;
+   }
+
+   .role-option input[type="radio"] {
+       display: none;
+   }
+
+   .role-card {
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       padding: 20px 16px;
+       border: 2px solid var(--input-border);
+       border-radius: 12px;
+       background: var(--input-bg);
+       cursor: pointer;
+       transition: all 0.3s ease;
+       text-align: center;
+       height: 120px;
+       justify-content: center;
+   }
+
+   .role-card:hover {
+       border-color: #667eea;
+       background: rgba(102, 126, 234, 0.05);
+       transform: translateY(-2px);
+       box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+   }
+
+   .role-option input[type="radio"]:checked + .role-card {
+       border-color: #667eea;
+       background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+       box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+       transform: translateY(-2px);
+   }
+
+   .role-icon {
+       font-size: 24px;
+       color: #667eea;
+       margin-bottom: 8px;
+   }
+
+   .role-option input[type="radio"]:checked + .role-card .role-icon {
+       color: #667eea;
+       transform: scale(1.1);
+   }
+
+   .role-info h3 {
+       margin: 0 0 4px 0;
+       font-size: 14px;
+       font-weight: 600;
+       color: var(--text-primary);
+   }
+
+   .role-info p {
+       margin: 0;
+       font-size: 12px;
+       color: var(--text-secondary);
+       line-height: 1.4;
+   }
+
+   [data-theme="dark"] .role-card:hover {
+       background: rgba(102, 126, 234, 0.1);
+   }
+
+   [data-theme="dark"] .role-option input[type="radio"]:checked + .role-card {
+       background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+   }
+  
+   .auth-links {
+       margin-top: 32px;
+       padding-top: 24px;
+       border-top: 1px solid var(--border-color);
+   }
+  
+   .auth-links p {
+       margin: 0;
+       color: var(--text-secondary);
+       font-size: 15px;
+   }
+  
+   .auth-links a {
+       color: #667eea;
+       text-decoration: none;
+       font-weight: 600;
+       transition: color 0.2s ease;
+   }
+  
+   .auth-links a:hover {
+       color: #5a67d8;
+       text-decoration: underline;
+   }
+  
+   .messages {
+       margin-bottom: 24px;
+   }
+  
+   .alert {
+       padding: 16px 20px;
+       border-radius: 12px;
+       margin-bottom: 16px;
+       font-weight: 500;
+       border: 1px solid transparent;
+   }
+  
+   .alert-success {
+       background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+       color: #155724;
+       border-color: #c3e6cb;
+   }
+  
+   .alert-error {
+       background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+       color: #721c24;
+       border-color: #f5c6cb;
+   }
+  
+   .alert-info {
+       background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+       color: #0c5460;
+       border-color: #bee5eb;
+   }
+  
+   .errorlist {
+       list-style: none;
+       padding: 0;
+       margin: 8px 0 0 0;
+       color: #dc3545;
+       font-size: 13px;
+       font-weight: 500;
+   }
+  
+   .errorlist li {
+       margin-bottom: 4px;
+       padding: 4px 0;
+   }
+  
+   .help-text {
+       font-size: 12px;
+       color: #6b7280;
+       margin-top: 8px;
+       padding: 8px 12px;
+       background: #f8fafc;
+       border-radius: 8px;
+       border-left: 3px solid #667eea;
+       line-height: 1.4;
+   }
+  
+   /* Mobile responsive */
+   @media (max-width: 480px) {
+       .auth-container {
+           padding: 16px;
+       }
+      
+       .auth-card {
+           padding: 32px 24px;
+           border-radius: 20px;
+       }
+      
+       .auth-title {
+           font-size: 28px;
+       }
+      
+       .form-control {
+           padding: 14px 16px;
+           font-size: 16px; /* Prevents zoom on iOS */
+       }
+      
+       .btn-primary {
+           padding: 14px 20px;
+       }
+       
+       .role-selection-container {
+           grid-template-columns: 1fr;
+           gap: 12px;
+       }
+       
+       .role-card {
+           height: 100px;
+           padding: 16px 12px;
+       }
+       
+       .role-icon {
+           font-size: 20px;
+       }
+       
+       .role-info h3 {
+           font-size: 13px;
+       }
+       
+       .role-info p {
+           font-size: 11px;
+       }
+   }
+</style>
+</head>
+<body>
+<div class="auth-container">
+   <div class="auth-card">
+       <div class="auth-logo">
+           <i class="fas fa-heartbeat"></i>
+       </div>
+       <h1 class="auth-title">Join MediFlow AI</h1>
+       <p class="auth-subtitle">Create your account</p>
+      
+       {% if messages %}
+           <div class="messages">
+               {% for message in messages %}
+                   <div class="alert alert-{{ message.tags }}">
+                       {{ message }}
+                   </div>
+               {% endfor %}
+           </div>
+       {% endif %}
+      
+       <form method="post">
+           {% csrf_token %}
+          
+           <div class="form-group">
+               <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+               {{ form.username }}
+               {% if form.username.help_text %}
+                   <div class="help-text">{{ form.username.help_text }}</div>
+               {% endif %}
+               {% if form.username.errors %}
+                   <ul class="errorlist">
+                       {% for error in form.username.errors %}
+                           <li>{{ error }}</li>
+                       {% endfor %}
+                   </ul>
+               {% endif %}
+           </div>
+          
+           <div class="form-group">
+               <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
+               <div class="password-input-container">
+                   {{ form.password1 }}
+                   <button type="button" class="password-toggle">
+                       <i class="fas fa-eye"></i>
+                   </button>
+               </div>
+               {% if form.password1.help_text %}
+                   <div class="help-text">{{ form.password1.help_text }}</div>
+               {% endif %}
+               {% if form.password1.errors %}
+                   <ul class="errorlist">
+                       {% for error in form.password1.errors %}
+                           <li>{{ error }}</li>
+                       {% endfor %}
+                   </ul>
+               {% endif %}
+           </div>
+          
+           <div class="form-group">
+               <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
+               <div class="password-input-container">
+                   {{ form.password2 }}
+                   <button type="button" class="password-toggle">
+                       <i class="fas fa-eye"></i>
+                   </button>
+               </div>
+               {% if form.password2.help_text %}
+                   <div class="help-text">{{ form.password2.help_text }}</div>
+               {% endif %}
+               {% if form.password2.errors %}
+                   <ul class="errorlist">
+                       {% for error in form.password2.errors %}
+                           <li>{{ error }}</li>
+                       {% endfor %}
+                   </ul>
+               {% endif %}
+           </div>
+
+           <div class="form-group">
+               <label class="form-label">Select Your Role</label>
+               <div class="role-selection-container">
+                   <div class="role-option" data-role="administrator">
+                       <input type="radio" name="user_role" value="administrator" id="role-admin" required>
+                       <label for="role-admin" class="role-card">
+                           <div class="role-icon">
+                               <i class="fas fa-user-shield"></i>
+                           </div>
+                           <div class="role-info">
+                               <h3>Administrator</h3>
+                               <p>Full system access and management</p>
+                           </div>
+                       </label>
+                   </div>
+                   <div class="role-option" data-role="physician">
+                       <input type="radio" name="user_role" value="screening_physician" id="role-physician" required>
+                       <label for="role-physician" class="role-card">
+                           <div class="role-icon">
+                               <i class="fas fa-stethoscope"></i>
+                           </div>
+                           <div class="role-info">
+                               <h3>Screening Physician</h3>
+                               <p>Patient screening and assessment</p>
+                           </div>
+                       </label>
+                   </div>
+               </div>
+           </div>
+          
+           <button type="submit" class="btn-primary">Sign Up</button>
+       </form>
+      
+       <div class="auth-links">
+           <p>Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+       </div>
+   </div>
+</div>
+<script>
+   // Enhanced form styling and interactions
+   document.addEventListener('DOMContentLoaded', function() {
+       const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+      
+       inputs.forEach(input => {
+           input.classList.add('form-control', 'modern-input');
+          
+           // Set placeholder from label text
+           const label = input.previousElementSibling;
+           if (label && label.tagName === 'LABEL') {
+               const labelText = label.textContent.trim();
+               input.setAttribute('placeholder', `Enter your ${labelText.toLowerCase()}`);
+           }
+          
+           // Add focus and blur animations
+           input.addEventListener('focus', function() {
+               this.parentElement.classList.add('focused');
+           });
+          
+           input.addEventListener('blur', function() {
+               this.parentElement.classList.remove('focused');
+               if (this.value.trim() !== '') {
+                   this.parentElement.classList.add('filled');
+               } else {
+                   this.parentElement.classList.remove('filled');
+               }
+           });
+          
+           // Check if field is pre-filled
+           if (input.value.trim() !== '') {
+               input.parentElement.classList.add('filled');
+           }
+       });
+      
+       // Password strength indicator
+       const password1 = document.querySelector('input[name="password1"]');
+       if (password1) {
+           password1.addEventListener('input', function() {
+               // You can add password strength logic here
+           });
+       }
+      
+       // Role selection interaction
+       const roleCards = document.querySelectorAll('.role-card');
+       const roleInputs = document.querySelectorAll('input[name="user_role"]');
+       
+       roleCards.forEach(card => {
+           card.addEventListener('click', function() {
+               const input = this.previousElementSibling;
+               if (input && input.type === 'radio') {
+                   input.checked = true;
+                   
+                   // Remove selected class from all cards
+                   roleCards.forEach(c => c.classList.remove('selected'));
+                   // Add selected class to clicked card
+                   this.classList.add('selected');
+                   
+                   // Add visual feedback
+                   this.style.transform = 'translateY(-2px) scale(1.02)';
+                   setTimeout(() => {
+                       this.style.transform = '';
+                   }, 150);
+               }
+           });
+       });
+
+       // Add loading state to submit button
+       const form = document.querySelector('form');
+       const submitBtn = document.querySelector('.btn-primary');
+      
+       if (form && submitBtn) {
+           form.addEventListener('submit', function(e) {
+               // Check if role is selected
+               const selectedRole = document.querySelector('input[name="user_role"]:checked');
+               if (!selectedRole) {
+                   e.preventDefault();
+                   alert('Please select your role before proceeding.');
+                   return false;
+               }
+               
+               submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
+               submitBtn.disabled = true;
+           });
+       }
+
+       // Add password toggle functionality
+       const passwordToggles = document.querySelectorAll('.password-toggle');
+       passwordToggles.forEach(function(button) {
+           button.addEventListener('click', function(e) {
+               e.preventDefault();
+               e.stopPropagation();
+               togglePasswordField(this);
+           });
+       });
+   });
+
+   function togglePasswordField(button) {
+       console.log('Toggle function called');
+       const passwordInput = button.parentElement.querySelector('input[type="password"], input[type="text"]');
+       const toggleIcon = button.querySelector('i');
+       
+       console.log('Found input:', !!passwordInput, 'Found icon:', !!toggleIcon);
+       
+       if (passwordInput) {
+           if (passwordInput.type === 'password') {
+               console.log('Showing password');
+               passwordInput.type = 'text';
+               if (toggleIcon) {
+                   toggleIcon.classList.remove('fa-eye');
+                   toggleIcon.classList.add('fa-eye-slash');
+               }
+               button.classList.add('active');
+               button.setAttribute('aria-label', 'Hide password');
+           } else {
+               console.log('Hiding password');
+               passwordInput.type = 'password';
+               if (toggleIcon) {
+                   toggleIcon.classList.remove('fa-eye-slash');
+                   toggleIcon.classList.add('fa-eye');
+               }
+               button.classList.remove('active');
+               button.setAttribute('aria-label', 'Show password');
+           }
+       } else {
+           console.error('Password input not found');
+       }
+   }
+</script>
+</body>
+</html>
+
+
+
+
+

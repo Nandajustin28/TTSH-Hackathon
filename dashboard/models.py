@@ -14,7 +14,25 @@ class PatientForm(models.Model):
         ('processing', 'Processing'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
     ]
+
+    def can_be_cancelled(self):
+        return self.status in ['approved', 'rejected']
+
+    def is_cancelled(self):
+        return self.status == 'cancelled'
+    
+    def can_undo_cancellation(self):
+        return self.status == 'cancelled' and self.previous_status in ['approved', 'rejected']
+    
+    def undo_cancellation(self):
+        """Restore the form to its previous status before cancellation"""
+        if self.can_undo_cancellation():
+            self.status = self.previous_status
+            self.previous_status = None
+            return True
+        return False
     
     AI_DECISION_CHOICES = [
         ('analyzing', 'Analyzing...'),
@@ -33,6 +51,7 @@ class PatientForm(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     processed = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, blank=True, null=True, help_text="Status before cancellation, used for undo")
     ai_decision = models.CharField(max_length=20, choices=AI_DECISION_CHOICES, default='analyzing')
     ai_feedback = models.TextField(blank=True, null=True)
     extracted_patient_name = models.CharField(max_length=255, blank=True, null=True)

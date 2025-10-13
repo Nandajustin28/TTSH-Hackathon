@@ -253,6 +253,20 @@
                 <div class="stat-number">{{ rejected_forms }}</div>
             </div>
         </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <span style="display:inline-block;width:32px;height:32px;background:#e3342f;border-radius:50%;position:relative;">
+                    <svg viewBox="0 0 32 32" width="32" height="32" style="position:absolute;top:0;left:0;">
+                        <circle cx="16" cy="16" r="15" fill="#e3342f" stroke="white" stroke-width="2" />
+                        <rect x="2" y="14" width="28" height="4" rx="2" fill="white" transform="rotate(-25 16 16)" />
+                    </svg>
+                </span>
+            </div>
+            <div class="stat-content">
+                <h3>Cancelled</h3>
+                <div class="stat-number">{{ cancelled_forms }}</div>
+            </div>
+        </div>
         
         <div class="stat-card">
             <div class="stat-icon orange">

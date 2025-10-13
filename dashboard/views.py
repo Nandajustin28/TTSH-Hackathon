@@ -14,9 +14,10 @@ from .models import PatientForm
 
 @login_required
 def dashboard_home(request):
-    # Mock data for the dashboard
-    recent_forms = PatientForm.objects.all()[:5]  # Get 5 most recent forms
-    total_forms = PatientForm.objects.count()
+    # Get recent forms excluding cancelled ones (cancelled forms are hidden by default)
+    recent_forms = PatientForm.objects.exclude(status='cancelled').order_by('-uploaded_at')[:5]
+    # Total forms count excludes cancelled forms
+    total_forms = PatientForm.objects.exclude(status='cancelled').count()
     
     # Get message notifications for administrators
     unread_messages_count = 0
@@ -52,6 +53,7 @@ def dashboard_home(request):
     # Calculate statistics based on actual database data
     approved_forms = PatientForm.objects.filter(status='approved').count()
     rejected_forms = PatientForm.objects.filter(status='rejected').count()
+    cancelled_forms = PatientForm.objects.filter(status='cancelled').count()
     pending_forms = PatientForm.objects.filter(status='pending').count()
     processing_forms = PatientForm.objects.filter(status='processing').count()
     
@@ -79,6 +81,7 @@ def dashboard_home(request):
         'total_forms': total_forms,
         'accepted_forms': approved_forms,
         'rejected_forms': rejected_forms,
+        'cancelled_forms': cancelled_forms,
         'pending_forms': pending_forms,
         'processing_forms': processing_forms,
         'avg_processing_time': avg_processing_time,
@@ -198,8 +201,14 @@ def database_view(request):
     
     # Status filter
     status_filter = request.GET.get('status', 'all')
-    if status_filter != 'all':
+    if status_filter == 'cancelled':
+        # Only show cancelled forms when specifically requested
+        forms = forms.filter(status='cancelled')
+    elif status_filter != 'all':
         forms = forms.filter(status=status_filter)
+    else:
+        # By default, exclude cancelled forms to keep them hidden
+        forms = forms.exclude(status='cancelled')
     
     # Time-based sorting
     sort_order = request.GET.get('sort', 'desc')  # Default to newest first (descending)
@@ -257,12 +266,14 @@ def database_view(request):
     pending_count = 0
     approved_count = 0
     rejected_count = 0
+    cancelled_count = 0
     
     if hasattr(request.user, 'profile') and request.user.profile.role == 'administrator':
         all_forms = PatientForm.objects.all()
         pending_count = all_forms.filter(status='pending').count()
         approved_count = all_forms.filter(status='approved').count()
         rejected_count = all_forms.filter(status='rejected').count()
+        cancelled_count = all_forms.filter(status='cancelled').count()
     
     context = {
         'forms': forms_with_messages,
@@ -273,6 +284,7 @@ def database_view(request):
         'pending_count': pending_count,
         'approved_count': approved_count,
         'rejected_count': rejected_count,
+        'cancelled_count': cancelled_count,
     }
     
     return render(request, 'dashboard/database.html', context)
@@ -390,7 +402,7 @@ def update_form_status(request):
             new_status = data.get('status')
             
             # Validate the new status
-            if new_status not in ['pending', 'approved', 'rejected']:
+            if new_status not in ['pending', 'approved', 'rejected', 'cancelled']:
                 return JsonResponse({'success': False, 'error': 'Invalid status'})
             
             # Only administrators can update status directly. Physicians must request via messaging.
@@ -401,6 +413,18 @@ def update_form_status(request):
             try:
                 form = PatientForm.objects.get(id=form_id)
                 old_status = form.status
+                
+                # Special validation for cancellation
+                if new_status == 'cancelled':
+                    if not form.can_be_cancelled():
+                        return JsonResponse({'success': False, 'error': 'Only approved or rejected forms can be cancelled'})
+                    # Store the current status as previous status for undo functionality
+                    form.previous_status = old_status
+                
+                # Prevent changes to cancelled forms
+                if old_status == 'cancelled':
+                    return JsonResponse({'success': False, 'error': 'Cancelled forms cannot be modified'})
+                
                 form.status = new_status
                 form.save()
                 
@@ -419,6 +443,51 @@ def update_form_status(request):
                     'new_status': new_status,
                     'status_display': form.get_status_display()
                 })
+            except PatientForm.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Form not found'})
+                
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON data'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@login_required
+def undo_cancellation(request):
+    """Undo the cancellation of a patient form via AJAX"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            form_id = data.get('form_id')
+            
+            # Only administrators can undo cancellations
+            if not hasattr(request.user, 'profile') or request.user.profile.role != 'administrator':
+                return JsonResponse({'success': False, 'error': 'Permission denied. Only administrators can undo cancellations.'})
+            
+            # Get the form and undo cancellation
+            try:
+                form = PatientForm.objects.get(id=form_id)
+                
+                if not form.can_undo_cancellation():
+                    return JsonResponse({'success': False, 'error': 'This form cannot be restored. Only cancelled forms with a previous status can be undone.'})
+                
+                # Store the previous status before undoing
+                previous_status = form.previous_status
+                
+                # Undo the cancellation
+                if form.undo_cancellation():
+                    form.save()
+                    
+                    return JsonResponse({
+                        'success': True, 
+                        'message': f'Form cancellation undone. Status restored to {previous_status}',
+                        'new_status': form.status,
+                        'status_display': form.get_status_display()
+                    })
+                else:
+                    return JsonResponse({'success': False, 'error': 'Failed to undo cancellation'})
+                    
             except PatientForm.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Form not found'})
                 

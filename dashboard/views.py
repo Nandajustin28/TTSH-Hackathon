@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.conf import settings
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Avg
 from django.utils import timezone
 from django.contrib.auth.models import User
 import os
@@ -49,14 +49,41 @@ def dashboard_home(request):
         except ImportError:
             pass
     
+    # Calculate statistics based on actual database data
+    approved_forms = PatientForm.objects.filter(status='approved').count()
+    rejected_forms = PatientForm.objects.filter(status='rejected').count()
+    pending_forms = PatientForm.objects.filter(status='pending').count()
+    processing_forms = PatientForm.objects.filter(status='processing').count()
+    
+    # Calculate average processing time for completed forms
+    completed_forms = PatientForm.objects.filter(processing_time_seconds__isnull=False)
+    if completed_forms.exists():
+        avg_time_seconds = completed_forms.aggregate(avg_time=Avg('processing_time_seconds'))['avg_time']
+        if avg_time_seconds:
+            avg_minutes = round(avg_time_seconds / 60, 1)
+            avg_processing_time = f"{avg_minutes}m"
+        else:
+            avg_processing_time = "0.0m"
+    else:
+        avg_processing_time = "0.0m"
+    
+    # Calculate acceptance rate
+    processed_total = approved_forms + rejected_forms
+    if processed_total > 0:
+        acceptance_rate = f"{round((approved_forms / processed_total) * 100)}%"
+    else:
+        acceptance_rate = "0%"
+    
     context = {
         'user_name': request.user.get_full_name() or request.user.username,
         'total_forms': total_forms,
-        'accepted_forms': PatientForm.objects.filter(processed=True).count(),
-        'rejected_forms': 0,  # Add logic for rejected forms if needed
-        'avg_processing_time': '0.0m',
-        'forms_processed_today': PatientForm.objects.filter(uploaded_at__date=timezone.now().date()).count() if 'timezone' in globals() else 0,
-        'acceptance_rate': '100%' if total_forms > 0 else '0%',
+        'accepted_forms': approved_forms,
+        'rejected_forms': rejected_forms,
+        'pending_forms': pending_forms,
+        'processing_forms': processing_forms,
+        'avg_processing_time': avg_processing_time,
+        'forms_processed_today': PatientForm.objects.filter(uploaded_at__date=timezone.now().date()).count(),
+        'acceptance_rate': acceptance_rate,
         'processing_target': '<6 min',
         'recent_forms': recent_forms,
         'unread_messages_count': unread_messages_count,

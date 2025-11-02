@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ticxt$ay7332%4o-p*c=40&f_qj48nsx(t&eyzd=81coof%j=p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.vercel.app']
+ALLOWED_HOSTS = ['.vercel.app','ttsh-hackathon.onrender.com']
 
 
 # Application definition

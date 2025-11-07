@@ -24,21 +24,25 @@ class PatientForm(models.Model):
         return self.status == 'cancelled'
     
     def can_undo_cancellation(self):
-        try:
-            return self.status == 'cancelled' and hasattr(self, 'previous_status') and self.previous_status in ['approved', 'rejected']
-        except:
-            return False
+        # Temporarily disabled until previous_status field is available
+        return False
+        # try:
+        #     return self.status == 'cancelled' and hasattr(self, 'previous_status') and self.previous_status in ['approved', 'rejected']
+        # except:
+        #     return False
     
     def undo_cancellation(self):
         """Restore the form to its previous status before cancellation"""
-        try:
-            if self.can_undo_cancellation():
-                self.status = self.previous_status
-                self.previous_status = None
-                return True
-        except:
-            pass
+        # Temporarily disabled until previous_status field is available
         return False
+        # try:
+        #     if self.can_undo_cancellation():
+        #         self.status = self.previous_status
+        #         self.previous_status = None
+        #         return True
+        # except:
+        #     pass
+        # return False
     
     AI_DECISION_CHOICES = [
         ('analyzing', 'Analyzing...'),
@@ -57,7 +61,9 @@ class PatientForm(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     processed = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, blank=True, null=True, help_text="Status before cancellation, used for undo")
+    # previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, blank=True, null=True, help_text="Status before cancellation, used for undo")
+    # NOTE: previous_status field is temporarily commented out for deployment compatibility
+    # This field will be uncommented after the migration runs successfully on production
     ai_decision = models.CharField(max_length=20, choices=AI_DECISION_CHOICES, default='analyzing')
     ai_feedback = models.TextField(blank=True, null=True)
     extracted_patient_name = models.CharField(max_length=255, blank=True, null=True)

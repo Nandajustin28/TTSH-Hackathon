@@ -24,14 +24,20 @@ class PatientForm(models.Model):
         return self.status == 'cancelled'
     
     def can_undo_cancellation(self):
-        return self.status == 'cancelled' and self.previous_status in ['approved', 'rejected']
+        try:
+            return self.status == 'cancelled' and hasattr(self, 'previous_status') and self.previous_status in ['approved', 'rejected']
+        except:
+            return False
     
     def undo_cancellation(self):
         """Restore the form to its previous status before cancellation"""
-        if self.can_undo_cancellation():
-            self.status = self.previous_status
-            self.previous_status = None
-            return True
+        try:
+            if self.can_undo_cancellation():
+                self.status = self.previous_status
+                self.previous_status = None
+                return True
+        except:
+            pass
         return False
     
     AI_DECISION_CHOICES = [

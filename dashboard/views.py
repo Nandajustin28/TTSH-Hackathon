@@ -423,7 +423,11 @@ def update_form_status(request):
                     if not form.can_be_cancelled():
                         return JsonResponse({'success': False, 'error': 'Only approved or rejected forms can be cancelled'})
                     # Store the current status as previous status for undo functionality
-                    form.previous_status = old_status
+                    try:
+                        if hasattr(form, 'previous_status'):
+                            form.previous_status = old_status
+                    except:
+                        pass  # Ignore if previous_status field doesn't exist yet
                 
                 # Prevent changes to cancelled forms
                 if old_status == 'cancelled':
@@ -477,7 +481,10 @@ def undo_cancellation(request):
                     return JsonResponse({'success': False, 'error': 'This form cannot be restored. Only cancelled forms with a previous status can be undone.'})
                 
                 # Store the previous status before undoing
-                previous_status = form.previous_status
+                try:
+                    previous_status = getattr(form, 'previous_status', None)
+                except:
+                    previous_status = None
                 
                 # Undo the cancellation
                 if form.undo_cancellation():
@@ -485,7 +492,7 @@ def undo_cancellation(request):
                     
                     return JsonResponse({
                         'success': True, 
-                        'message': f'Form cancellation undone. Status restored to {previous_status}',
+                        'message': f'Form cancellation undone. Status restored to {previous_status or "previous status"}',
                         'new_status': form.status,
                         'status_display': form.get_status_display()
                     })

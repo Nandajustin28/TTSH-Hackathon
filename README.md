@@ -1,5 +1,5 @@
 # Tan Tock Seng Hospital Hackathon
-# Triaging System for Patient Admission
+## Triaging System for Patient Admission
 
 This project uses:
 - **Backend:** Django

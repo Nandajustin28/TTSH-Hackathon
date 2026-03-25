@@ -4,8 +4,8 @@
 This project uses:
 - **Backend:** Django
 - **Frontend:** CSS
-Currently, **OCR Systems** in maintanence
-Several documents are private materials (PDPA)
+/n Currently, **OCR Systems** in maintanence
+/n Several documents are private materials (PDPA)
 
 ## Setup Instructions
 
